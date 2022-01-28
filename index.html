@@ -1,0 +1,372 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<title>Basic Bootstrap Template</title>
+	<!-- Bootstrap CSS file -->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+	<title>Ground Reference Simulator</title>
+</head>
+<body>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+
+<script src="simulator/sim.js"></script>
+<script src="schedulers/fifo.js"></script>
+<script src="gui/gui.js"></script>
+
+<header class="page-header header container-fluid" style="text-align:center">
+CPU Scheduler Simulator
+</header>
+
+<div class="row" style="text-align:center">
+	<div class="col-md-12">
+		<input type="button" value="Start" onclick="startSimulation();">
+		<input type="button" value="Stop" onclick="stopSimulation();">
+		<input type="button" value="Reset" onclick="resetSimulation();">
+	</div>
+</div>
+
+<div class="container">
+	<div class="row" style="text-align:center">
+		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
+			Airspeed<br>
+			<span id="#airspeed">N/A</span>
+		</div>
+		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
+			Heading<br>
+			<span id="#aircraftheading">N/A</span><br>
+			( Use arrow keys to steer)
+		</div>
+	</div>
+	<div class="row" style="text-align:center">
+		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
+			Wind speed<br>
+			<span id="#windspeed">N/A</span><br>
+			(Q and A to adjust)
+		</div>
+		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
+			Wind Heading<br> 
+			<span id="#windheading">N/A</span><br>
+			(Z and X to turn wind)
+		</div>
+	</div>
+
+	<!-- Simulation graphic -->
+	<div class="row">
+		<div class="col-md-6">
+			<canvas width="500" height="500" id="#canvas"></canvas>
+		</div>
+	</div>
+
+	<div class="row" style="text-align:center">
+		<div class="col-md-3" style="border: 2px solid gray; border-radius: 25px">
+			Ground Speed<br>
+			<span id="#groundspeed">N/A</span>
+		</div>
+		<div class="col-md-3" style="border: 2px solid gray; border-radius: 25px">
+			Ground Track<br>
+			<span id="#groundtrack">N/A</span><br>
+		</div>
+		<div class="col-md-3" style="border: 2px solid gray; border-radius: 25px">
+			Heading Correction
+				<span id="#headingcorrection">N/A</span>
+		</div>
+	</div>
+
+</div>
+
+<div style="font-family: sans-serif; font-size: 20;">
+</div>
+<script>
+	var canvas = document.querySelector("canvas");
+	var ctx = canvas.getContext("2d");
+
+	var min_x = 0;
+	var max_x = canvas.width;
+	var min_y = 0;
+	var max_y = canvas.height;
+
+	var margin = 50;
+
+	var heading_increment = 5;
+	var velocity_increment = 5;
+	var plane_size = Math.min(max_x, max_y) / 10;
+
+	var plane_heading;
+	var plane_velocity;
+	var wind_heading;
+	var wind_velocity;
+	var plane_x;
+	var plane_y;
+
+
+	var simulation_rate = 5;
+	var simulation_increment = 1;
+	var time_slice = 150;
+	var time_slicer = -1;
+
+	resetSimulation();
+
+	function startSimulation() {
+		if(time_slicer < 0) {
+			time_slicer = setInterval(executeTimeslice, time_slice);
+		}
+	}
+
+	function stopSimulation() {
+		if (time_slicer > -1) {
+			clearInterval(time_slicer);
+		}
+		time_slicer = -1;
+	}
+
+	function resetSimulation() {
+		plane_heading = 90;
+		plane_velocity = 70;
+		wind_heading = 90;
+		wind_velocity = 20;
+		plane_x = margin;
+		plane_y = margin;
+		stopSimulation();
+		draw();
+	}
+
+	function slowSimulation() {
+		simulation_rate -= simulation_increment;
+		// Don't let it get to zero
+		simulation_rate = Math.max(simulation_rate, simulation_increment);
+		draw();
+	}
+
+	function speedSimulation() {
+		simulation_rate += simulation_increment;
+		simulation_rate = Math.min(simulation_rate, 20)
+		draw();
+	}
+
+	function executeTimeslice() {
+		var p_angle = (plane_heading - 90) * Math.PI / 180;
+		var w_angle = (wind_heading - 90)* Math.PI / 180;
+		plane_x += (plane_velocity * Math.cos(p_angle) + wind_velocity * Math.cos(w_angle)) * 0.01 * simulation_rate;
+		plane_y += (plane_velocity * Math.sin(p_angle) + wind_velocity * Math.sin(w_angle)) * 0.01 * simulation_rate;
+		plane_x = Math.min(plane_x,max_x - plane_size/2);
+		plane_x = Math.max(plane_x,min_x + plane_size/2);
+		plane_y = Math.min(plane_y,max_y - plane_size/2);
+		plane_y = Math.max(plane_y,min_y + plane_size/2);
+
+		draw();
+	}
+
+
+	function draw() {
+
+
+		ctx.clearRect(0, 0, max_x, max_y);
+
+		ctx.lineWidth = 2;
+		ctx.strokeStyle = "rgb(255, 0, 0)";
+		roundRect(ctx, margin, margin, max_x - 2*margin, max_y - 2*margin, 50);
+
+		ctx.strokeStyle = "rgb(0, 0, 255)";
+		ctx.beginPath();
+		ctx.arc(max_x/2, max_y/2, max_x/2 - margin, 0, 2 * Math.PI);
+		ctx.stroke();
+
+
+		drawWindArrow(ctx);
+
+		drawPlaneAt(ctx, plane_x, plane_y);
+
+		var p_angle = (plane_heading - 90) * Math.PI / 180;
+		var w_angle = (wind_heading - 90)* Math.PI / 180;
+		var groundspeed_x = plane_velocity * Math.cos(p_angle) + wind_velocity * Math.cos(w_angle);
+		var groundspeed_y = plane_velocity * Math.sin(p_angle) + wind_velocity * Math.sin(w_angle);
+		var groundspeed = Math.sqrt(Math.pow(groundspeed_x,2) + Math.pow(groundspeed_y,2));
+		var groundtrack = normalizeAngle360( Math.atan2(groundspeed_y, groundspeed_x) * 180 / Math.PI + 90 );
+		var correction = normalizeAngle180(plane_heading - groundtrack);
+
+		document.getElementById("#airspeed").innerHTML = plane_velocity;
+		document.getElementById("#windspeed").innerHTML = wind_velocity;
+		document.getElementById("#groundspeed").innerHTML = Math.round(groundspeed);
+		document.getElementById("#groundtrack").innerHTML = Math.round(groundtrack);
+		document.getElementById("#windheading").innerHTML = wind_heading;
+		document.getElementById("#aircraftheading").innerHTML = plane_heading;
+		document.getElementById("#headingcorrection").innerHTML = Math.round(correction);
+		document.getElementById("#simulationrate").innerHTML = simulation_rate;
+	}
+
+	function normalizeAngle360(angle) {
+		while(angle < 0) {
+			angle+=360;
+		}
+		while(angle > 360) {
+			angle-=360;
+		}
+		return angle;
+	}
+
+	function normalizeAngle180(angle) {
+		angle = normalizeAngle360(angle);
+		if(angle > 180) {
+			angle -= 360;
+		}
+		return angle;
+	}
+
+
+	var plane_velocity_min = 40;
+	var plane_velocity_max = 110;
+	var wind_velocity_min = 0;
+	var wind_velocity_max = 50;
+	
+	function adjustAirspeed(adjustment) {
+		plane_velocity += adjustment;
+		plane_velocity = Math.max(plane_velocity, plane_velocity_min);
+		plane_velocity = Math.min(plane_velocity, plane_velocity_max);
+	}
+
+	function adjustWindspeed(adjustment) {
+		wind_velocity += adjustment;
+		wind_velocity = Math.max(wind_velocity, wind_velocity_min);
+		wind_velocity = Math.min(wind_velocity, wind_velocity_max);
+	}
+
+	function adjustPlaneHeading(adjustment) {
+		plane_heading = plane_heading + adjustment;
+		while(plane_heading < 0) {
+			plane_heading += 360;
+		}
+		while(plane_heading > 360) {
+			plane_heading -= 360;
+		}
+	}
+
+	function adjustWindHeading(adjustment) {
+		wind_heading = wind_heading + adjustment;
+		while(wind_heading < 0) {
+			wind_heading += 360;
+		}
+		while(wind_heading > 360) {
+			wind_heading -= 360;
+		}
+	}
+
+	function drawPlaneAt(ctx, x, y) {
+		let img = document.createElement("img");
+		img.src = "airplane.png";
+		img.addEventListener("load", () => {
+			ctx.save();
+			ctx.translate(x, y);
+			var p_angle = (plane_heading - 90) * Math.PI / 180;
+			ctx.rotate(p_angle + Math.PI/2);
+			ctx.drawImage(img, -plane_size/2, -plane_size/2, plane_size, plane_size);
+			ctx.restore();
+		});
+
+	}
+
+	function drawWindArrow(ctx) {
+		let img = document.createElement("img");
+		img.src = "left_arrow.png";
+		img.addEventListener("load", () => {
+			ctx.save();
+			ctx.translate(max_x/2, max_y/2);
+			var w_angle = (wind_heading - 90) * Math.PI / 180;
+			ctx.rotate(w_angle + Math.PI);
+			ctx.drawImage(img, -wind_velocity, -wind_velocity, 2*wind_velocity, 2*wind_velocity);
+			ctx.restore();
+		});
+	}
+
+
+
+
+	// Shamelessly stolen from https://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
+	/**
+	 * Draws a rounded rectangle using the current state of the canvas.
+	 * If you omit the last three params, it will draw a rectangle
+	 * outline with a 5 pixel border radius
+	 * @param {CanvasRenderingContext2D} ctx
+	 * @param {Number} x The top left x coordinate
+	 * @param {Number} y The top left y coordinate
+	 * @param {Number} width The width of the rectangle
+	 * @param {Number} height The height of the rectangle
+	 * @param {Number} [radius = 5] The corner radius; It can also be an object
+	 *				 to specify different radii for corners
+	 * @param {Number} [radius.tl = 0] Top left
+	 * @param {Number} [radius.tr = 0] Top right
+	 * @param {Number} [radius.br = 0] Bottom right
+	 * @param {Number} [radius.bl = 0] Bottom left
+	 * @param {Boolean} [fill = false] Whether to fill the rectangle.
+	 * @param {Boolean} [stroke = true] Whether to stroke the rectangle.
+	 */
+	function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+		if (typeof stroke == 'undefined') {
+			stroke = true;
+		}
+		if (typeof radius === 'undefined') {
+			radius = 5;
+		}
+		if (typeof radius === 'number') {
+			radius = {tl: radius, tr: radius, br: radius, bl: radius};
+		} else {
+			var defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
+			for (var side in defaultRadius) {
+				radius[side] = radius[side] || defaultRadius[side];
+			}
+		}
+		ctx.beginPath();
+		ctx.moveTo(x + radius.tl, y);
+		ctx.lineTo(x + width - radius.tr, y);
+		ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+		ctx.lineTo(x + width, y + height - radius.br);
+		ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+		ctx.lineTo(x + radius.bl, y + height);
+		ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+		ctx.lineTo(x, y + radius.tl);
+		ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+		ctx.closePath();
+		if (fill) {
+			ctx.fill();
+		}
+		if (stroke) {
+			ctx.stroke();
+		}
+
+	}
+
+
+	document.addEventListener('keydown', function(event) {
+		if(event.keyCode == 37) {
+			adjustPlaneHeading(-heading_increment);
+		} else if(event.keyCode == 39) {
+			adjustPlaneHeading(heading_increment)
+		} else if(event.keyCode == 90) { // "z"
+			adjustWindHeading(-heading_increment);
+		} else if(event.keyCode == 88) { // "x"
+			adjustWindHeading(heading_increment);
+		} else if(event.keyCode == 81) { // "q"
+			adjustWindspeed(velocity_increment);
+		} else if(event.keyCode == 65) { // "a"
+			adjustWindspeed(-velocity_increment);
+		}
+	});
+
+	function wheelMoved(e) {
+		console.debug("Moved " + e.deltaY);
+	}
+
+	document.getElementById("#canvas").addEventListener("wheel", wheelMoved);
+
+	draw();
+	resetSimulation();
+
+</script>
+</body>
+</html>
+
