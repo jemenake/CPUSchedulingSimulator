@@ -4,19 +4,70 @@ current_proccesses = [
 
 */
 
+// This class describes a process/thread/job
+// Its lifecycle is determined by an array of strings describing how many cycles it computes/waits for
+// Example: this.lifecycle = [ "c10", "w5", "c13" ]
+//  represents a job which computes for 10 cycles, then waits for 5, then computes for another 13 and then exits
 class Job {
     constructor(job_number, arrival_time, priority, lifecycle) {
         this.job_number = job_number
         this.arrival_time = arrival_time
-        this.finish_time = None
-        this.lifecycle = lifecycle
+        this.priority = priority
+        // This clones the lifecycle (as long as it remains an array of strings) so that it will be easy to create
+        // clone a job with something like:  new_job = new Job(old_job)
+        this.lifecycle = lifecycle.slice()
+    }
+
+    isAlive(cputime) {
+        this.parent.constructor()
+        // If it's our arrival time and we haven't finished
+        return (this.arrival_time <= cputime) && (! this.isFinished())
+    }
+
+    isFinished() {
+        return this.lifecycle.length == 0
+    }
+
+    isWaiting() {
+        return (! this.isFinished()) && (this.lifecycle[0][0] == "w")
+    }
+
+    // Decrement the wait timer
+    recordWait() {
+        // Make sure that we're really waiting
+        if(! this.isWaiting()) {
+            throw new Error("ERROR: we were asked to record a wait for a non-waiting process, which looked like " + JSON.stringify(this))
+        }
+        // Get everything after the first char as an integer
+        number = this.lifecycle[0].substring(1).parseInt()
+        // If it's a 1, then we have finished waiting, so delete this array element. Otherwise, decrement
+        if (number <= 1) {
+            delete this.lifecycle[0]
+        } else {
+            this.lifecycle[0] = "w" + (number - 1)
+        }
+    }
+
+    recordComputation() {
+        // Make sure that we're really waiting
+        if(this.isWaiting()) {
+            throw new Error("ERROR: we were asked to record computation for a waiting process, which looked like " + JSON.stringify(this))
+        }
+        // Get everything after the first char as an integer
+        number = this.lifecycle[0].substring(1).parseInt()
+        // If it's a 1, then we have finished waiting, so delete this array element. Otherwise, decrement
+        if (number <= 1) {
+            delete this.lifecycle[0]
+        } else {
+            this.lifecycle[0] = "c" + (number - 1)
+        }    
     }
 }
 
-starting_objs = [
-    Job(0, 0, 3,[ "c3", "w2", "c4" ]),
-    Job(1, 2, 3,[ "c8", "w12", "c24", "w1", "c1" ]),
-    Job(2, 5, 3,[ "c22" ])
+starting_jobs = [
+    new Job(0, 0, 3,[ "c3", "w2", "c4" ]),
+    new Job(1, 2, 3,[ "c8", "w12", "c24", "w1", "c1" ]),
+    new Job(2, 5, 3,[ "c22" ])
     ]
 
 // Goals 
@@ -24,9 +75,8 @@ starting_objs = [
 // 2. Add multiple cores
 
 
-
 function simulator() {
-    var cycle = 0
+    // var cycle = 0
 
     // Grab tasks that start at time zero if any
     current_jobs = [] 
@@ -36,80 +86,55 @@ function simulator() {
         }
     }
 
+    // Here's where we make a list of every scheduler we want to run this job list against
+    let schedulers = [ new FIFOScheduler() ]
+
     // At this point, we have a list of jobs, and we can cycle through all of the schedulers
-    array.forEach(scheduler => schedulers) {
-        
-    });
+    schedulers.forEach((scheduler) => {
+        console.log("Simulating scheduler named : " + scheduler.name)
+        computeScheduleWith(scheduler, starting_jobs)
+    })
+}
 
-    console.log("Getting the scheduler ready")
+function computeScheduleWith(scheduler, jobs) {
+
     var the_schedule = [] // the complete trace that will be handed to the gui
-    the_scheduler = FIFOScheduler()
 
+    // Run until nothing is alive
+    //while (starting_jobs.some((job) => job.isAlive())) {
+    for(i=0; i<9; i++) {
+        let cpu_time = the_schedule.length
+        cpu_assignments = scheduler.schedule(jobs)
+        // TODO: Decrease wait and cpu times based upon what the scheduler decided
+        //      for each process that the scheduler has selected for computation
+        //          recordComputation()        
+        //      for each process that is waiting
+        //          recordWait()
 
-        // This way requires schedule() to return an object representing the CPU assignements        the_schedule.append(the_scheduler.schedule(list_of_jobs))w
-    // Loop until no more jobs
-        // or....
-        // This way, schedule() gets to modify the_schedule however it wants
-        the_scheduler.schedule(list_of_jobs, the_schedule))
-
-        // After we know what the_scheduler
-    while(theist_of_objects)>0){
- wants in the CPUs, we should decrement the computneeded com   pute tie
-        // [ "c3", "w2", "c4" ]
-        // [ "c2", "w2", "c4" ]
-        // [ "c1", "w2", "c4" ]
-        // [ "w2", "c4" ]
-        // [ "w1", "c4" ]
-        // [ "c4" ]
-        // [ "c4" ]
-        // [ "c4" ]
-        // [ "c4" ]
-        // [ "c4" ]
-        // [ "c3" ]
-
-        // of each process in a CPU and decrement the wait time of everything else
-        // For each job in starting_jobs:
-        //    if job.lifecycle[0]m     my_awesome_scheduler.schedule() // <- Some kind of parameters (like the processes waiting for CPU) would go here
-
-.startswith()""c" and sethe_scheduleis_scehduled()heduled()the_sceihedult,e, 
-        //.      get number after 'c'
-        //.      if number is 1, then delete this string from lifecycle (eg. job.lifecycle.shift())
-        //.      otherwise, replace job.lifecycle[0] with "c"+(number - 1)
-        //    else if job.lifecycle[0].startswith("w")
-        //.      get number after 'w'
-        //.      if number is 1, then delete this string from lifecycle (eg. job.lifecycle.shift())
-        //.      otherwise, replace job.lifecycle[0] with "w"+(number - 1)
-        
-
-//         // // Pass to selected schedular
-        // if(scheduler = 'fifo') {
-        //     job_to_run = fifo(list_of_objects)
-        // }
-        // else if(scheduler == 'rr') {
-        //     job_to_run = round_robin(list_of_objects)
-        // }
-        // else {
-        //     throw new UserException('Invalid Scheduler Type')
-        }
+        // Add these assignments to the overall schedule
+        the_schedule.push(cpu_assignments)
+    }
+    return the_schedule
+    
         
         
         // Based on result add to final schedule list for gui demo
-        job_to_run.add_to_results()
+        // job_to_run.add_to_results()
 
         // Prep info
-        cycle++
-        for(let job in starting_objs){
+        // cycle++
+        // for(let job in starting_objs){
 
 
         // Append to the_schedule whatever the process->CPU assignments are for this cycle            if (job.arrival_time == cycle){
-                current_jobs.push(job)
+                // current_jobs.push(job)
     // Give the resulting schedule to the UI 
 
-           }
-        }
-        list_of_objects // pull in procceses that just arrived, update any computations done on this end
-    }
+        //    }
+        // }
+        // list_of_objects // pull in procceses that just arrived, update any computations done on this end
+    // }
 }
 // 
 
-simulator()
+// simulator()

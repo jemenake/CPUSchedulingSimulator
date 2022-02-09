@@ -113,9 +113,7 @@ CPU Scheduler Simulator
 	resetSimulation();
 
 	function startSimulation() {
-		if(time_slicer < 0) {
-			time_slicer = setInterval(executeTimeslice, time_slice);
-		}
+		simulator();
 	}
 
 	function stopSimulation() {
@@ -178,9 +176,6 @@ CPU Scheduler Simulator
 		ctx.stroke();
 
 
-		drawWindArrow(ctx);
-
-		drawPlaneAt(ctx, plane_x, plane_y);
 
 		var p_angle = (plane_heading - 90) * Math.PI / 180;
 		var w_angle = (wind_heading - 90)* Math.PI / 180;
@@ -197,7 +192,6 @@ CPU Scheduler Simulator
 		document.getElementById("#windheading").innerHTML = wind_heading;
 		document.getElementById("#aircraftheading").innerHTML = plane_heading;
 		document.getElementById("#headingcorrection").innerHTML = Math.round(correction);
-		document.getElementById("#simulationrate").innerHTML = simulation_rate;
 	}
 
 	function normalizeAngle360(angle) {
@@ -256,32 +250,6 @@ CPU Scheduler Simulator
 		}
 	}
 
-	function drawPlaneAt(ctx, x, y) {
-		let img = document.createElement("img");
-		img.src = "airplane.png";
-		img.addEventListener("load", () => {
-			ctx.save();
-			ctx.translate(x, y);
-			var p_angle = (plane_heading - 90) * Math.PI / 180;
-			ctx.rotate(p_angle + Math.PI/2);
-			ctx.drawImage(img, -plane_size/2, -plane_size/2, plane_size, plane_size);
-			ctx.restore();
-		});
-
-	}
-
-	function drawWindArrow(ctx) {
-		let img = document.createElement("img");
-		img.src = "left_arrow.png";
-		img.addEventListener("load", () => {
-			ctx.save();
-			ctx.translate(max_x/2, max_y/2);
-			var w_angle = (wind_heading - 90) * Math.PI / 180;
-			ctx.rotate(w_angle + Math.PI);
-			ctx.drawImage(img, -wind_velocity, -wind_velocity, 2*wind_velocity, 2*wind_velocity);
-			ctx.restore();
-		});
-	}
 
 
 

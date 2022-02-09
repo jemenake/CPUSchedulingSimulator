@@ -1,35 +1,41 @@
 
 class Scheduler {
-    constructor() {
-        throw new Error("Can't instantiate abstract class!");
+    constructor(name) {
+        console.log("Superclass initializing for " + name)
+        this.name = name
     }
-    schedule() {
+
+    schedule(jobs) {
         throw new Error("You must create a schedule method for your class")
     }
 }
 
+// FIFO
 class FIFOScheduler extends Scheduler {
+    name = "FIFO Scheduler"
+
     constructor() {
-        console.log("I'm making a FIFO")
+        super("FIFO")
+        console.log("FIFOScheduler constructor")
     }
 
-    schedule() {
+    schedule(jobs) {
         console.log("Scheduling")
     }
 } 
 
-// FIFO
-function fifo(job_list){}
-    var first_job = NULL
-    for (const element of job_list) {
-        if (first_job == None){
-            first_job = job
-        }
-        else if (first_job.job_number > job.job_number){
-            first_job = job
-        }
-    return first_job
-}
+
+// function fifo(job_list){}
+//     var first_job = NULL
+//     for (const element of job_list) {
+//         if (first_job == None){
+//             first_job = job
+//         }
+//         else if (first_job.job_number > job.job_number){
+//             first_job = job
+//         }
+//     return first_job
+// }
 
 // SRTN
 
