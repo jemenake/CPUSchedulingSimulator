@@ -1,6 +1,22 @@
 
+class Scheduler {
+    constructor() {
+        throw new Error("Can't instantiate abstract class!");
+    }
+    schedule() {
+        throw new Error("You must create a schedule method for your class")
+    }
+}
 
+class FIFOScheduler extends Scheduler {
+    constructor() {
+        console.log("I'm making a FIFO")
+    }
 
+    schedule() {
+        console.log("Scheduling")
+    }
+} 
 
 // FIFO
 function fifo(job_list){}
