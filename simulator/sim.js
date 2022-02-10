@@ -18,10 +18,16 @@ class Job {
         this.lifecycle = lifecycle.slice()
     }
 
-    isAlive(cputime) {
-        this.parent.constructor()
+    toString() {
+        return "Proc:" + this.job_number + " Pri:" + this.priority + " Life:" + this.lifecycle.join(",")
+    }
+
+    isAlive(cpu_time) {
+        if (cpu_time == null) {
+            throw new Error("ERROR: You must call Job.isAlive with a cputime")
+        }
         // If it's our arrival time and we haven't finished
-        return (this.arrival_time <= cputime) && (! this.isFinished())
+        return (this.arrival_time <= cpu_time) && (! this.isFinished())
     }
 
     isFinished() {
@@ -51,6 +57,9 @@ class Job {
     recordComputation() {
         // Make sure that we're really waiting
         if(this.isWaiting()) {
+            // This is actually something we shouldn't throw an exeption for. This would just indicate
+            // a bad scheduler, so we should schedule it and just make note of the mistake in the notes
+            // for this timeslice
             throw new Error("ERROR: we were asked to record computation for a waiting process, which looked like " + JSON.stringify(this))
         }
         // Get everything after the first char as an integer
@@ -64,19 +73,79 @@ class Job {
     }
 }
 
-starting_jobs = [
-    new Job(0, 0, 3,[ "c3", "w2", "c4" ]),
-    new Job(1, 2, 3,[ "c8", "w12", "c24", "w1", "c1" ]),
-    new Job(2, 5, 3,[ "c22" ])
-    ]
+class System {
+    // This is where we track the configuration of the system. Not just the permanent
+    // aspects (like # of CPUs) but also the state (like which CPUs are asleep)
+    constructor(name, cpus) {
+        this.name = name
+        this.cpus = cpus
+    }
+
+    toString() {
+        return "System: " + this.name
+    }
+}
+
+class SystemState {
+    constructor(jobs) {
+        this.jobs = jobs
+        this.trace = [] // This will contain the list of all process->CPU assignments. It's length will be the system time
+    }
+
+    getSystemTime() {
+        return this.trace.length
+    }
+
+    getLiveJobs() {
+        let cpu_time = this.getSystemTime()
+        return this.jobs.filter((job) => job.isAlive(cpu_time))
+    }
+
+    dumpJobs() {
+        this.jobs.forEach((job) => {
+            console.log(job.toString())
+        })
+    }
+    
+    dumpLiveJobs() {
+        this.dumpJobs(this.getLiveJobs())
+    }
+    
+    dumpStatus() {
+        console.log("======= Simulator Status =======")
+        console.log("Clock:" + this.getSystemTime())
+        console.log("  == Live Jobs ==")
+        this.dumpLiveJobs()
+    }
+    
+    // Here's where we actually record the decision from the scheduler. We are passed
+    // an array of processes which are assigned to CPU0, CPU1, etc, according to the
+    // array index
+    recordSchedule(assignments) {
+        for(var i=0; i<assignments.length; i++) {
+            console.log("CPU" + i + " gets process " + assignments[i])
+        }
+        this.trace.push(assignments.slice()) // Make a copy of the array, just in case something else messes with it later
+    }
+}
 
 // Goals 
 // 1. get FIFO working
 // 2. Add multiple cores
 
 
+
 function simulator() {
-    // var cycle = 0
+    var starting_jobs = [
+        new Job(0, 0, 3,[ "c3", "w2", "c4" ]),
+        new Job(1, 2, 3,[ "c8", "w12", "c24", "w1", "c1" ]),
+        new Job(2, 5, 3,[ "c22" ])
+    ]
+
+    // Define the system we're running on
+    let system = new System("1-CPU System", 1)
+
+    let system_state = new SystemState(starting_jobs)
 
     // Grab tasks that start at time zero if any
     current_jobs = [] 
@@ -87,24 +156,23 @@ function simulator() {
     }
 
     // Here's where we make a list of every scheduler we want to run this job list against
-    let schedulers = [ new FIFOScheduler() ]
+    let schedulers = [ new RandomScheduler() ]
 
     // At this point, we have a list of jobs, and we can cycle through all of the schedulers
     schedulers.forEach((scheduler) => {
         console.log("Simulating scheduler named : " + scheduler.name)
-        computeScheduleWith(scheduler, starting_jobs)
+        computeScheduleWith(system, system_state, scheduler)
     })
 }
 
-function computeScheduleWith(scheduler, jobs) {
-
-    var the_schedule = [] // the complete trace that will be handed to the gui
+function computeScheduleWith(system, system_state, scheduler) {
+    console.log("computeSchedule() called with the " + system.name + " and " + scheduler.name + " and " + system_state.jobs.length + " jobs")
 
     // Run until nothing is alive
     //while (starting_jobs.some((job) => job.isAlive())) {
-    for(i=0; i<9; i++) {
-        let cpu_time = the_schedule.length
-        cpu_assignments = scheduler.schedule(jobs)
+    for(i=0; i<3; i++) {
+        let cpu_time = system_state.getSystemTime()
+        cpu_assignments = scheduler.schedule(system, system_state)
         // TODO: Decrease wait and cpu times based upon what the scheduler decided
         //      for each process that the scheduler has selected for computation
         //          recordComputation()        
@@ -112,9 +180,9 @@ function computeScheduleWith(scheduler, jobs) {
         //          recordWait()
 
         // Add these assignments to the overall schedule
-        the_schedule.push(cpu_assignments)
+        system_state.recordSchedule(cpu_assignments)
+        system_state.dumpStatus()
     }
-    return the_schedule
     
         
         
