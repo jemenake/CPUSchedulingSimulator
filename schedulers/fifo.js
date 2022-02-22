@@ -56,10 +56,23 @@ class FIFOScheduler extends Scheduler {
             delete available_jobs[proc_idx] // Remove this job from the list of available 
         }
         return assignments
-        console.log("Scheduling")
     }
 } 
 
+// RR
+class RRScheduler extends Scheduler {
+    name = "RR Scheduler"
+
+    constructor() {
+        super("RR")
+        console.log("RRScheduler constructor")
+    }
+
+    schedule(system, system_state) {
+        // TODO: assign fixed time per process and cycle through them
+        console.log("RR Scheduling")
+    }
+}
 
 // function fifo(job_list){}
 //     var first_job = NULL
@@ -74,6 +87,3 @@ class FIFOScheduler extends Scheduler {
 // }
 
 // SRTN
-
-
-// RR
