@@ -46,6 +46,16 @@ class FIFOScheduler extends Scheduler {
     }
 
     schedule(system, system_state) {
+        var available_jobs = system_state.getLiveJobs()
+        var assignments = Array(system.cpus.length).fill(null) 
+        while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
+            let cpu_idx = assignments.findIndex((val) => val == null)
+            let proc_idx = 0 // Pick first process from those available
+            console.log("Assigning job " + available_jobs[proc_idx].name + " to CPU at index " + cpu_idx)
+            assignments[cpu_idx] = available_jobs[proc_idx]
+            delete available_jobs[proc_idx] // Remove this job from the list of available 
+        }
+        return assignments
         console.log("Scheduling")
     }
 } 
