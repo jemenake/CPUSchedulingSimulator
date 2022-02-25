@@ -13,10 +13,8 @@ class Scheduler {
 // Random
 // Random scheduler just randomly picks 
 class RandomScheduler extends Scheduler {
-    name = "Random Scheduler"
-
-    constructor() {
-        super("Random")
+    constructor(name) {
+        super(name)
         console.log("RandomScheduler constructor")
     }
 
@@ -38,15 +36,27 @@ class RandomScheduler extends Scheduler {
 
 // FIFO
 class FIFOScheduler extends Scheduler {
-    name = "FIFO Scheduler"
-
-    constructor() {
-        super("FIFO")
+    constructor(name, prev_jobs) {
+        super(name)
+        this.prev_jobs = prev_jobs
         console.log("FIFOScheduler constructor")
     }
 
     schedule(system, system_state) {
         var available_jobs = system_state.getLiveJobs()
+        var cur_jobs = []
+        for (const prev_job of this.prev_jobs) { // Push previous jobs that are still live first
+            if (job_exists(prev_job, available_jobs)) {
+                cur_jobs.push(prev_job)
+            }
+        }
+
+        for (const available_job of available_jobs) { // Push remaining live jobs
+            if (!job_exists(available_job, cur_jobs)) {
+                cur_jobs.push(available_job)
+            }
+        }
+
         var assignments = Array(system.cpus.length).fill(null) 
         while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
             let cpu_idx = assignments.findIndex((val) => val == null)
@@ -55,32 +65,40 @@ class FIFOScheduler extends Scheduler {
             assignments[cpu_idx] = available_jobs[proc_idx]
             delete available_jobs[proc_idx] // Remove this job from the list of available 
         }
+        this.prev_jobs = [...this.cur_jobs]
         return assignments
+    }
+
+    job_exists(job, jobs) {
+        for (const j in jobs) {
+            if (job.getJobNumber() == j.getJobNumber()) {
+                return true
+            }
+        }
+        return false
     }
 }
 
 // RR
-class RRScheduler extends Scheduler {
-    name = "RR Scheduler"
-    prev_jobs = []
-    cycle_count = 0
-
-    constructor() {
-        super("RR")
+class RRScheduler extends FIFOScheduler {
+    constructor(name, prev_jobs, cycle_count, cycle_limit) {
+        super(name, prev_jobs)
+        this.cycle_count = cycle_count
+        this.cycle_limit = cycle_limit
         console.log("RRScheduler constructor")
     }
 
-    schedule(system, system_state, cycle_limit) {
+    schedule(system, system_state) {
         var available_jobs = system_state.getLiveJobs()
         var cur_jobs = []
         for (const prev_job of this.prev_jobs) { // Push previous jobs that are still live first
-            if (this.job_exists(prev_job, available_jobs)) {
+            if (super.job_exists(prev_job, available_jobs)) {
                 cur_jobs.push(prev_job)
             }
         }
 
         for (const available_job of available_jobs) { // Push remaining live jobs
-            if (!this.job_exists(available_job, cur_jobs)) {
+            if (!super.job_exists(available_job, cur_jobs)) {
                 cur_jobs.push(available_job)
             }
         }
@@ -105,15 +123,6 @@ class RRScheduler extends Scheduler {
         }
         this.prev_jobs = [...this.cur_jobs]
         return assignments
-    }
-
-    job_exists(job, jobs) {
-        for (const j in jobs) {
-            if (job.getJobNumber() == j.getJobNumber()) {
-                return true
-            }
-        }
-        return false
     }
 }
 
