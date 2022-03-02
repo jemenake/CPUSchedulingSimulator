@@ -1,8 +1,11 @@
 
 class Scheduler {
-    constructor(name) {
+    constructor(name, system) {
         console.log("Superclass initializing for " + name)
+        this.system = system
         this.name = name
+        this.queues = [[]]
+        this.queue_names = [ "Default Queue" ]
     }
 
     schedule(system, system_state) {
@@ -13,8 +16,8 @@ class Scheduler {
 // Random
 // Random scheduler just randomly picks 
 class RandomScheduler extends Scheduler {
-    constructor(name) {
-        super(name)
+    constructor(name, system) {
+        super(name, system)
         console.log("RandomScheduler constructor")
     }
 
@@ -36,13 +39,20 @@ class RandomScheduler extends Scheduler {
 
 // FIFO
 class FIFOScheduler extends Scheduler {
-    constructor(name, prev_jobs) {
-        super(name)
+    constructor(name, system, prev_jobs) {
+        super(name, system)
         this.prev_jobs = prev_jobs
+        // Some day for multi-queue support
+        // this.queue_names = []
+        // this.queues = []
+        // for(i=0; i<system.cpus.count; i++) {
+        //     this.queue_names.push("CPU" + i)
+        //     this.queues.push([])
+        // }
         console.log("FIFOScheduler constructor")
     }
 
-    schedule(system, system_state) {
+    schedule(system_state) {
         var available_jobs = system_state.getLiveJobs()
         var cur_jobs = []
         for (const prev_job of this.prev_jobs) { // Push previous jobs that are still live first

@@ -4,6 +4,48 @@ current_proccesses = [
 
 */
 
+// Todo list
+// Create job creator function - Joe?
+// Create priority scheduler (separate queues for each priority)
+// Create UI - Joe
+// 
+
+// Priority scheduler
+//    Scheduler decides how many queues to use
+// Needs to set self.queue_names (and length must match the length of trace[i].queues)
+//   FIFO (unified) would just return something like ["Unified queue"]
+//   FIFO (one queue per CPU) would return something like ["CPU0", "CPU1", ...] // because schedule would check system.cpus.length
+
+// Simulator
+//    Decides how many CPUs
+// 
+
+// UI Needs
+//    Trace of: all queues for each timeslice (list of int "0" for P0) (check: no process appears in multiple queues)
+//    List of CPU assignments (list of int "0" for CPU0, null if there's no assignement) (check: no process appears twice. Every process also appears in a queue. List.length = # of CPUs)
+//    State of all processes (including finished ones but not-yet-started jobs) list of Job
+//    Aggregate stats (average wait, ....) systemwide AND per-process at each timeslice
+//
+// {
+//    trace: [
+//      {  2-priority scheduler and 3CPU system
+//        queues: [ [1,2], [4,5,3] ],
+//        assignments: [ 1, 2, 4],
+//        processes: [ job0, job1, etc],
+//        stats: {
+//          longest_wait: 0,
+//      
+//        }
+//      }
+//    ],
+//    queue_names: [ "High priority", "Low Priority" ]
+//    stats: { // Overall
+//      longest_wait: 0,
+//      
+//    }
+// }
+
+
 // This class describes a process/thread/job
 // Its lifecycle is determined by an array of strings describing how many cycles it computes/waits for
 // Example: this.lifecycle = [ "c10", "w5", "c13" ]
@@ -160,7 +202,7 @@ function simulator() {
     }
 
     // Here's where we make a list of every scheduler we want to run this job list against
-    let schedulers = [new RandomScheduler()]
+    let schedulers = [new RandomScheduler("Random Schedule", system)]
 
     // At this point, we have a list of jobs, and we can cycle through all of the schedulers
     schedulers.forEach((scheduler) => {
@@ -176,7 +218,7 @@ function computeScheduleWith(system, system_state, scheduler) {
     //while (starting_jobs.some((job) => job.isAlive())) {
     for (i = 0; i < 3; i++) {
         let cpu_time = system_state.getSystemTime()
-        cpu_assignments = scheduler.schedule(system, system_state)
+        cpu_assignments = scheduler.schedule(system_state)
 
         // Decrease wait and cpu times based upon what the scheduler decided
         system_state.jobs.forEach((job) => {
