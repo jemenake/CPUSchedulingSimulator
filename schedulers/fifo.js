@@ -2,10 +2,10 @@
 class Scheduler {
     constructor(name, system) {
         console.log("Superclass initializing for " + name)
-        this.system = system
         this.name = name
+        this.system = system
         this.queues = [[]]
-        this.queue_names = [ "Default Queue" ]
+        this.queue_names = ["Default Queue"]
     }
 
     schedule(system, system_state) {
@@ -32,7 +32,17 @@ class RandomScheduler extends Scheduler {
             assignments[cpu_idx] = available_jobs[proc_idx]
             delete available_jobs[proc_idx] // Remove this job from the list of available 
         }
-        return assignments
+        return {
+            "queues": [this.getJobNumbers(available_jobs)],
+            "assignments": assignments
+        }
+    }
+
+    getJobNumbers(jobs) {
+        job_numbers = []
+        for (job of job_numbers) {
+            job_numbers.push(job.job_number)
+        }
     }
 } 
 
@@ -76,12 +86,15 @@ class FIFOScheduler extends Scheduler {
             delete available_jobs[proc_idx] // Remove this job from the list of available 
         }
         this.prev_jobs = [...this.cur_jobs]
-        return assignments
+        return {
+            "queues": [this.getJobNumbers(cur_jobs)],
+            "assignments": assignments
+        }
     }
 
     job_exists(job, jobs) {
         for (const j in jobs) {
-            if (job.getJobNumber() == j.getJobNumber()) {
+            if (job.job_number == j.job_number) {
                 return true
             }
         }
@@ -132,9 +145,21 @@ class RRScheduler extends FIFOScheduler {
             delete available_jobs[proc_idx] // Remove this job from the list of available 
         }
         this.prev_jobs = [...this.cur_jobs]
-        return assignments
+        return {
+            "queues": [this.getJobNumbers(cur_jobs)],
+            "assignments": assignments
+        }
     }
 }
+
+// priority scheduler: have a certain number of queues (default 3 say)
+
+// schedulers need to return assignments and queues
+// can return a list of queues (even a list of one queue)
+// list of current cpu assignments
+// have a function to get queue names for every scheduler ex: ["high priority", "low priority"]
+
+// CFS: every 20ms every process gets a little bit of time if they haven't had any
 
 // function fifo(job_list){}
 //     var first_job = NULL
