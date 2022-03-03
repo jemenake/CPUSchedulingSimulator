@@ -34,7 +34,8 @@ class RandomScheduler extends Scheduler {
         }
         return {
             "queues": [this.getJobNumbers(available_jobs)],
-            "assignments": assignments
+            "assignments": assignments,
+            "processes": system_state.getLiveOrDeadJobs()
         }
     }
 
@@ -88,7 +89,8 @@ class FIFOScheduler extends Scheduler {
         this.prev_jobs = [...this.cur_jobs]
         return {
             "queues": [this.getJobNumbers(cur_jobs)],
-            "assignments": assignments
+            "assignments": assignments,
+            "processes": system_state.getLiveOrDeadJobs()
         }
     }
 
@@ -147,7 +149,8 @@ class RRScheduler extends FIFOScheduler {
         this.prev_jobs = [...this.cur_jobs]
         return {
             "queues": [this.getJobNumbers(cur_jobs)],
-            "assignments": assignments
+            "assignments": assignments,
+            "processes": system_state.getLiveOrDeadJobs()
         }
     }
 }

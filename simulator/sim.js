@@ -143,6 +143,11 @@ class SystemState {
         return this.jobs.filter((job) => job.isAlive(cpu_time))
     }
 
+    getLiveOrDeadJobs() {
+        let cpu_time = this.getSystemTime()
+        return this.jobs.filter((job) => job.isAlive(cpu_time) || job.isFinished())
+    }
+
     dumpJobs() {
         this.jobs.forEach((job) => {
             console.log(JSON.parse(JSON.stringify(job)))
