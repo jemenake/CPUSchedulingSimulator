@@ -29,9 +29,9 @@ current_proccesses = [
 // {
 //    trace: [
 //      {  2-priority scheduler and 3CPU system
-//        queues: [ [1,2], [4,5,3] ],
-//        assignments: [ 1, 2, 4],
-//        processes: [ job0, job1, etc],
+//        queues: [ [jobObj1,jobObj2], [jobObj4,jobObj5,jobObj3] ],
+//        queue_names: [[Queue 1], [Queue 2]],
+//        assignments: [jobObj1, jobObj2, jobObj4],
 //        stats: {
 //          longest_wait: 0,
 //      
@@ -143,10 +143,12 @@ class SystemState {
         return this.jobs.filter((job) => job.isAlive(cpu_time))
     }
 
+    /* not used currently
     getLiveOrDeadJobs() {
         let cpu_time = this.getSystemTime()
         return this.jobs.filter((job) => job.isAlive(cpu_time) || job.isFinished())
     }
+    */
 
     dumpJobs() {
         this.jobs.forEach((job) => {
