@@ -40,7 +40,7 @@ class RandomScheduler extends Scheduler {
             let proc_idx = 0
             if (method == "random") {
                 proc_idx = Math.floor(Math.random() * available_jobs.length) // Pick a random process from those available
-            } else if (method == "fifo") {
+            } else if (method == "fifo" || method == 'rr') { // fifo and round-robin both choose the first process
                 proc_idx = 0
             }
             
@@ -106,7 +106,7 @@ class RandomScheduler extends Scheduler {
 
 // FIFO scheduler assigns jobs in a first-in-first-out manner
 class FIFOScheduler extends Scheduler {
-    constructor(name, system, prev_jobs) {
+    constructor(name, system) {
         super(name, system)
         // Some day for multi-queue support
         // this.queue_names = []
@@ -164,8 +164,8 @@ class FIFOScheduler extends Scheduler {
 
 // RR
 class RRScheduler extends FIFOScheduler {
-    constructor(name, prev_jobs, cycle_count, cycle_limit) {
-        super(name, prev_jobs)
+    constructor(name, system, cycle_count, cycle_limit) {
+        super(name, system)
         this.cycle_count = cycle_count
         this.cycle_limit = cycle_limit
         console.log("RRScheduler constructor")
@@ -173,40 +173,25 @@ class RRScheduler extends FIFOScheduler {
 
     schedule(system, system_state) {
         var available_jobs = system_state.getLiveJobs()
-        var cur_jobs = []
-        for (const prev_job of this.prev_jobs) { // Push previous jobs that are still live first
-            if (super.job_exists(prev_job, available_jobs)) {
-                cur_jobs.push(prev_job)
-            }
-        }
+        var cur_jobs = this.getCurrentJobs(available_jobs)
+        this.queues[0] = [...cur_jobs]
 
-        for (const available_job of available_jobs) { // Push remaining live jobs
-            if (!super.job_exists(available_job, cur_jobs)) {
-                cur_jobs.push(available_job)
-            }
-        }
-
-        var last_proc = this.prev_jobs[0] 
-        if (last_proc != cur_jobs[0]) { // New job so reset count
+        var last_process = this.queues[0][0]
+        // New job so reset cyle count
+        if (last_process != cur_jobs[0]) {
             this.cycle_count = 0
         }
 
-        if (this.cycle_count > cycle_limit) { // Current job has run out of cycles so move it to the back of the line and reset count
+        // Current job has run out of cycles so move it to the back of the line and reset count
+        if (this.cycle_count > cycle_limit) {
             this.cur_jobs.shift(this.cur_jobs.pop())
             this.cycle_count = 0
         }
 
-        var assignments = Array(system.cpus.length).fill(null) 
-        while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
-            let cpu_idx = assignments.findIndex((val) => val == null)
-            let proc_idx = 0 // Pick first process from those available
-            console.log("Assigning job " + available_jobs[proc_idx].name + " to CPU at index " + cpu_idx)
-            assignments[cpu_idx] = available_jobs[proc_idx]
-            delete available_jobs[proc_idx] // Remove this job from the list of available 
-        }
-        this.prev_jobs = [...this.cur_jobs]
+        assigments = this.assignCPUJobs(available_jobs, "rr")
         return {
             "queues": [this.getJobNumbers(cur_jobs)],
+            "queue_names": this.queue_names,
             "assignments": assignments
         }
     }
