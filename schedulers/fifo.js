@@ -13,8 +13,7 @@ class Scheduler {
     }
 }
 
-// Random
-// Random scheduler just randomly picks 
+// Random scheduler that randomly assigns jobs to each CPU by shortest CPU queue
 class RandomScheduler extends Scheduler {
     constructor(name, system) {
         super(name, system)
@@ -23,8 +22,8 @@ class RandomScheduler extends Scheduler {
 
     schedule(system, system_state) {
         var available_jobs = system_state.getLiveJobs()
-        this.queues = [...available_jobs] // Queue order doesn't matter so just assign it to live jobs
-        assigments = this.assignCPUJobs(available_jobs)
+        this.queues[0] = [...available_jobs] // Queue order doesn't matter so just assign it to live jobs
+        assigments = this.assignCPUJobs(available_jobs, "random")
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -32,13 +31,41 @@ class RandomScheduler extends Scheduler {
         }
     }
 
+    assignCPUJobs(available_jobs, method) {
+        var assignments = Array(system.cpus.length).fill(null) 
+        // As long as there are available jobs to assign to a CPU and there are CPU's to assign _to_...
+        while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
+            let cpu_idx = assignments.findIndex((val) => val == null)
+
+            let proc_idx = 0
+            if (method == "random") {
+                proc_idx = Math.floor(Math.random() * available_jobs.length) // Pick a random process from those available
+            } else if (method == "fifo") {
+                proc_idx = 0
+            }
+            
+            console.log("Assigning job " + available_jobs[proc_idx].name + " to CPU at index " + cpu_idx)
+            assignments[cpu_idx] = available_jobs[proc_idx]
+            delete available_jobs[proc_idx] // Remove this job from the list of available 
+        }
+        return assignments
+    }
+
+    /* This assumes every CPU has a queue
     // Assigns each available job to each CPU by shortest CPU queue
-    assignCPUJobs(available_jobs) {
+    assignCPUJobs(available_jobs, method) {
         var assignments = Array(system.cpus.length).fill([]) // Start with an array of empty arrays, one for each CPU
         // As long as there are available jobs to assign to a CPU and there are CPU's to assign _to_...
         while (available_jobs.length > 0) {
             let cpu_idx = this.findShortestIndex2D(assignments) 
-            let proc_idx = Math.floor(Math.random() * available_jobs.length) // Pick a random process from those available
+
+            let proc_idx = 0
+            if (method == "random") {
+                proc_idx = Math.floor(Math.random() * available_jobs.length) // Pick a random process from those available
+            } else if (method == "fifo") {
+                proc_idx = 0
+            }
+
             console.log("Assigning job " + available_jobs[proc_idx].name + " to CPU at index " + cpu_idx)
             assignments[cpu_idx].push(available_jobs[proc_idx])
             delete available_jobs[proc_idx] // Remove this job from the list of available 
@@ -59,7 +86,6 @@ class RandomScheduler extends Scheduler {
         return min_index
     }
 
-    /* not used currently
     findNullIndex2D(arr2d) {
         for (let i = 0; i < arr2d.length; i++) {
             if (arr2d[i] == null) {
@@ -78,12 +104,10 @@ class RandomScheduler extends Scheduler {
     */
 } 
 
-
-// FIFO
+// FIFO scheduler assigns jobs in a first-in-first-out manner
 class FIFOScheduler extends Scheduler {
     constructor(name, system, prev_jobs) {
         super(name, system)
-        this.prev_jobs = prev_jobs
         // Some day for multi-queue support
         // this.queue_names = []
         // this.queues = []
@@ -96,34 +120,38 @@ class FIFOScheduler extends Scheduler {
 
     schedule(system_state) {
         var available_jobs = system_state.getLiveJobs()
+        var cur_jobs = this.getCurrentJobs(available_jobs)
+        this.queues[0] = [...cur_jobs]
+        assigments = this.assignCPUJobs(available_jobs, "fifo")
+        return {
+            "queues": [this.getJobNumbers(cur_jobs)],
+            "queue_names": this.queue_names,
+            "assignments": assignments
+        }
+    }
+
+    // Returns a list of current live jobs in FIFO order
+    getCurrentJobs(available_jobs) {
         var cur_jobs = []
-        for (const prev_job of this.prev_jobs) { // Push previous jobs that are still live first
+        var prev_jobs = this.queues[0]
+
+        // Push previous jobs that are still live
+        for (const prev_job of prev_jobs) {
             if (job_exists(prev_job, available_jobs)) {
                 cur_jobs.push(prev_job)
             }
         }
 
-        for (const available_job of available_jobs) { // Push remaining live jobs
+        // Push remaining live jobs
+        for (const available_job of available_jobs) {
             if (!job_exists(available_job, cur_jobs)) {
                 cur_jobs.push(available_job)
             }
         }
-
-        var assignments = Array(system.cpus.length).fill(null) 
-        while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
-            let cpu_idx = assignments.findIndex((val) => val == null)
-            let proc_idx = 0 // Pick first process from those available
-            console.log("Assigning job " + available_jobs[proc_idx].name + " to CPU at index " + cpu_idx)
-            assignments[cpu_idx] = available_jobs[proc_idx]
-            delete available_jobs[proc_idx] // Remove this job from the list of available 
-        }
-        this.prev_jobs = [...this.cur_jobs]
-        return {
-            "queues": [this.getJobNumbers(cur_jobs)],
-            "assignments": assignments
-        }
+        return cur_jobs
     }
 
+    // Checks if a given job exists in a list of jobs
     job_exists(job, jobs) {
         for (const j in jobs) {
             if (job.job_number == j.job_number) {
