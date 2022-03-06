@@ -46,6 +46,14 @@ current_proccesses = [
 // }
 
 
+class TraceObject {
+    constructor(jobs, scheduler_return) {
+        this.jobs = jobs
+        this.scheduler_return = scheduler_return
+        this.scheduler_return = scheduler_return
+    }
+}
+
 // This class describes a process/thread/job
 // Its lifecycle is determined by an array of strings describing how many cycles it computes/waits for
 // Example: this.lifecycle = [ "c10", "w5", "c13" ]
@@ -326,10 +334,10 @@ function computeScheduleWith(system, system_state, scheduler) {
             }
         })
 
-
-        // Add these assignments to the overall schedule
-        system_state.recordSchedule(schedule)
-        system_state.dumpStatus()
+        // Trace update
+        system_state.trace.push(TraceObject(system_state.jobs.clone(), assignments.clone())) // Need to break the assigments up?
+        // system_state.recordSchedule(schedule) Old logic for clone
+        // system_state.dumpStatus()
     }
 
     // Final Agregate Stats
