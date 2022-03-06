@@ -23,45 +23,186 @@
 CPU Scheduler Simulator
 </header>
 
+<style>
+	/* Tooltip container */
+	.tooltip {
+	  position: relative;
+	  display: inline-block;
+	  border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+	}
+	
+	/* Tooltip text */
+	.tooltip .tooltiptext {
+	  visibility: hidden;
+	  width: 120px;
+	  background-color: black;
+	  color: #fff;
+	  text-align: center;
+	  padding: 5px 0;
+	  border-radius: 6px;
+	 
+	  /* Position the tooltip text - see examples below! */
+	  position: absolute;
+	  z-index: 1;
+	}
+	
+	/* Show the tooltip text when you mouse over the tooltip container */
+	.tooltip:hover .tooltiptext {
+	  visibility: visible;
+	}
+</style>
+
+
 <div class="row" style="text-align:center">
 	<div class="col-md-12">
-		<input type="button" value="Start" onclick="startSimulation();">
-		<input type="button" value="Stop" onclick="stopSimulation();">
-		<input type="button" value="Reset" onclick="resetSimulation();">
+		<input type="button" value="Run" style="border-radius: 6px;" onclick="startSimulation();">
+		<input type="button" value="Reset" style="border-radius: 6px;" onclick="resetSimulation();">
+	</div>
+</div>
+
+<div class="row" style="text-align:center">
+	<div class="col-12">
+		System Type:
+		<select name="system_type">
+			<option value="1cpu">1-CPU</option>
+			<option value="4cpu">4-CPU</option>
+			<option value="4cpu_numa_nomove">4-CPU NUMA (no-move)</option>
+			<option value="8cpu_numa_nomove">8-CPU NUMA (no-move)</option>
+			<option value="4cpu_numa_move">4-CPU NUMA (move)</option>
+			<option value="8cpu_numa_move">8-CPU NUMA (move)</option>
+		</select>
 	</div>
 </div>
 
 <div class="container">
-	<div class="row" style="text-align:center">
+	<!-- Scheduler Box -->
+	<div class="row" style="border: 2px solid yellow; border-radius: 10px; text-align: center;">
+		<!-- Scheduler Box -->
+		<div class="container">
+			<span style="color: white; background-color: gray;">Random Scheduler</span>
+			<div class="row" style="border: 2px solid gray; border-radius: 10px">
+				<div class="col-md-10" style="border: 2px solid gray; border-radius: 10px">
+					Queues
+					<div class="row" style="border: 2px solid gray; border-radius: 10px">
+						<div class="col-1" style="border: 2px solid gray; border-radius: 10px">Pri0</div>
+						<div class="col-11" style="border: 2px solid gray;">
+							<div class="row">
+								<div class="col"></div><!-- consumes extra space to push things right -->
+								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P12</div>
+								<div class="col-1" style="border: 2px solid gray; border-radius: 4px;">P23</div>
+								<div class="col-1" style="border: 2px solid orange; border-radius: 4px;">P7</div>
+								<div class="col-1" style="border: 2px solid green; border-radius: 4px">P15</div>	
+								<div class="col-1" style="border: 2px solid blue; border-radius: 4px">P19</div>
+								<div class="col-1" style="border: 2px solid red; border-radius: 4px">P22</div>	
+							</div>
+						</div>
+					</div>
+					<div class="row" style="border: 2px solid gray; border-radius: 10px">
+						<div class="col-1" style="border: 2px solid gray; border-radius: 10px">Pri1</div>
+						<div class="col-11" style="border: 2px solid gray; border-radius: 10px">
+							<div class="row">
+								<div class="col"></div><!-- consumes extra space to push things right -->
+								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P31</div>
+								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P3</div>
+								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P28</div>	
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-2" style="border: 2px solid gray; border-radius: 10px">
+					CPUs
+					<div class="row">
+						<div class="col-12" style="border: 2px solid gray; border-radius: 10px">
+							CPU0<br/>
+							<div style="border: 2px solid red; border-radius: 10px; text-align: center;">P22</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col" style="border: 2px solid gray; border-radius: 10px">
+							CPU1
+							<div style="border: 2px solid blue; border-radius: 10px; text-align: center;">P19</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col" style="border: 2px solid gray; border-radius: 10px">
+							CPU2
+							<div style="border: 2px solid green; border-radius: 10px; text-align: center;">P15</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="col" style="border: 2px solid gray; border-radius: 10px">
+							CPU3
+							<div style="border: 2px solid orange; border-radius: 10px; text-align: center;">P7</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+
+
+
+	<br/><br/><br/><br/>
+	<br/><br/><br/><br/>
+	<br/><br/><br/><br/>
+	<br/><br/><br/><br/>
+	<br/><br/><br/><br/>
+
+
+
+
+	<div class="row" style="text-align:center; border: 2px solid gray; border-radius: 25px">
 		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
+
 			Airspeed<br>
 			<span id="#airspeed">N/A</span>
 		</div>
 		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
 			Heading<br>
 			<span id="#aircraftheading">N/A</span><br>
-			( Use arrow keys to steer)
 		</div>
 	</div>
-	<div class="row" style="text-align:center">
-		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
-			Wind speed<br>
-			<span id="#windspeed">N/A</span><br>
-			(Q and A to adjust)
+	<div class="row" style="text-align:center; border: 2px solid gray; border-radius: 5px">
+		<div class="col-1" style="border: 2px solid gray; border-radius: 10px" title="tooltip">
+			P1<br>
+			<span id="#windspeed">N/A</span>
 		</div>
-		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
-			Wind Heading<br> 
+		<div class="col-1" style="border: 2px solid gray; border-radius: 10px">
+			P2<br> 
 			<span id="#windheading">N/A</span><br>
-			(Z and X to turn wind)
+		</div>
+		<div class="col-1" style="border: 2px solid gray; border-radius: 10px">
+			P2<br> 
+			<span id="#windheading">N/A</span><br>
+		</div>
+		<div class="col-1" style="border: 2px solid gray; border-radius: 10px">
+			P2<br> 
+			<span id="#windheading">N/A</span><br>
+		</div>
+		<div class="col-1" style="border: 2px solid gray; border-radius: 10px">
+			P2<br> 
+			<span id="#windheading">N/A</span><br>
+		</div>
+		<div class="col-1" style="border: 2px solid gray; border-radius: 10px">
+			P2<br> 
+			<span id="#windheading">N/A</span><br>
+		</div>
+		<div class="col-1" style="border: 2px solid gray; border-radius: 10px">
+			P2<br> 
+			<span id="#windheading">N/A</span><br>
+		</div>
+		<div class="col-1" style="border: 2px solid gray; border-radius: 10px">
+			P2<br> 
+			<span id="#windheading">N/A</span><br>
+		</div>
+		<div class="col-1" style="border: 2px solid gray; border-radius: 10px">
+			P2<br> 
+			<span id="#windheading">N/A</span><br>
 		</div>
 	</div>
 
-	<!-- Simulation graphic -->
-	<div class="row">
-		<div class="col-md-6">
-			<canvas width="500" height="500" id="#canvas"></canvas>
-		</div>
-	</div>
 
 	<div class="row" style="text-align:center">
 		<div class="col-md-3" style="border: 2px solid gray; border-radius: 25px">
