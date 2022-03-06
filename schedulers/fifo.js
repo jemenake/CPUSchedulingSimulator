@@ -20,10 +20,14 @@ class RandomScheduler extends Scheduler {
         console.log("RandomScheduler constructor")
     }
 
-    schedule(system, system_state) {
-        var available_jobs = system_state.getLiveJobs()
+    schedule(system_state) {
+        var available_jobs = system_state.getRunningJobs()
+        console.log("available_jobs = " + JSON.stringify(available_jobs))
+        available_jobs.forEach((job) => {
+            console.log("Live Job: " + job.job_number + " " + JSON.stringify(job.lifecycle))
+        })
         this.queues[0] = [...available_jobs] // Queue order doesn't matter so just assign it to live jobs
-        assigments = this.assignCPUJobs(available_jobs, "random")
+        let assignments = this.assignCPUJobs(available_jobs, "random")
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -32,7 +36,7 @@ class RandomScheduler extends Scheduler {
     }
 
     assignCPUJobs(available_jobs, method) {
-        var assignments = Array(system.cpus.length).fill(null) 
+        var assignments = Array(this.system.cpus.length).fill(null) // Start with an array of nulls for each CPU
         // As long as there are available jobs to assign to a CPU and there are CPU's to assign _to_...
         while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
             let cpu_idx = assignments.findIndex((val) => val == null)
@@ -44,7 +48,7 @@ class RandomScheduler extends Scheduler {
                 proc_idx = 0
             }
             
-            console.log("Assigning job " + available_jobs[proc_idx].name + " to CPU at index " + cpu_idx)
+            console.log("Assigning job " + available_jobs[proc_idx].job_number + " to CPU at index " + cpu_idx)
             assignments[cpu_idx] = available_jobs[proc_idx]
             delete available_jobs[proc_idx] // Remove this job from the list of available 
         }
@@ -112,7 +116,7 @@ class FIFOScheduler extends Scheduler {
     }
 
     schedule(system_state) {
-        var available_jobs = system_state.getLiveJobs()
+        var available_jobs = system_state.getRunningJobs()
         var cur_jobs = this.getCurrentJobs(available_jobs)
         this.queues[0] = [...cur_jobs]
         assigments = this.assignCPUJobs(available_jobs, "fifo")
@@ -165,7 +169,7 @@ class RRScheduler extends FIFOScheduler {
     }
 
     schedule(system, system_state) {
-        var available_jobs = system_state.getLiveJobs()
+        var available_jobs = system_state.getRunningJobs()
         var cur_jobs = this.getCurrentJobs(available_jobs)
         this.queues[0] = [...cur_jobs]
 
