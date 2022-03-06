@@ -231,9 +231,13 @@ function computeScheduleWith(system, system_state, scheduler) {
         })
 
         // Add these assignments to the overall schedule
-        system_state.recordSchedule(cpu_assignments)
-        system_state.dumpStatus()
+        // QUEUEs
+        system_state.recordSchedule(cpu_assignments)  // CPU Assignments
+        system_state.dumpStatus() // JOBS
+        // Current Aggregate States
     }
+
+    // Final Agregate Stats
 
 
 
