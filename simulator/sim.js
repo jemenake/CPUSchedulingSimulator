@@ -29,9 +29,9 @@ current_proccesses = [
 // {
 //    trace: [
 //      {  2-priority scheduler and 3CPU system
-//        queues: [ [1,2], [4,5,3] ],
-//        assignments: [ 1, 2, 4],
-//        processes: [ job0, job1, etc],
+//        queues: [ [jobObj1,jobObj2], [jobObj4,jobObj5,jobObj3] ],
+//        queue_names: [[Queue 1], [Queue 2]],
+//        assignments: [jobObj1, jobObj2, jobObj4],
 //        stats: {
 //          longest_wait: 0,
 //      
@@ -58,6 +58,10 @@ class Job {
         // This clones the lifecycle (as long as it remains an array of strings) so that it will be easy to create
         // clone a job with something like:  new_job = new Job(old_job)
         this.lifecycle = lifecycle.slice()
+    }
+
+    clone() {
+        return new Job(this.job_number, this.arrival_time, this.priority, this.lifecycle)
     }
 
     toString() {
@@ -87,10 +91,10 @@ class Job {
             throw new Error("ERROR: we were asked to record a wait for a non-waiting process, which looked like " + JSON.stringify(this))
         }
         // Get everything after the first char as an integer
-        number = this.lifecycle[0].substring(1).parseInt()
+        let number = parseInt(this.lifecycle[0].substring(1))
         // If it's a 1, then we have finished waiting, so delete this array element. Otherwise, decrement
         if (number <= 1) {
-            delete this.lifecycle[0]
+            this.lifecycle = this.lifecycle.slice(1)
         } else {
             this.lifecycle[0] = "w" + (number - 1)
         }
@@ -105,10 +109,10 @@ class Job {
             throw new Error("ERROR: we were asked to record computation for a waiting process, which looked like " + JSON.stringify(this))
         }
         // Get everything after the first char as an integer
-        number = this.lifecycle[0].substring(1).parseInt()
+        let number = parseInt(this.lifecycle[0].substring(1))
         // If it's a 1, then we have finished waiting, so delete this array element. Otherwise, decrement
         if (number <= 1) {
-            delete this.lifecycle[0]
+            this.lifecycle = this.lifecycle.slice(1)
         } else {
             this.lifecycle[0] = "c" + (number - 1)
         }
@@ -138,10 +142,28 @@ class SystemState {
         return this.trace.length
     }
 
+    // Returns all jobs which haven't finished
+    getUnfinishedJobs() {
+        return this.jobs.filter((job) => (! job.isFinished()))
+    }
+
+    // Get all jobs which are started and not finished (either waiting or requiring computation)
     getLiveJobs() {
         let cpu_time = this.getSystemTime()
         return this.jobs.filter((job) => job.isAlive(cpu_time))
     }
+
+    // Get all jobs which are waiting for computation
+    getRunningJobs() {
+        return this.getLiveJobs().filter((job) => (! job.isWaiting()))
+    }
+
+    /* not used currently
+    getLiveOrDeadJobs() {
+        let cpu_time = this.getSystemTime()
+        return this.jobs.filter((job) => job.isAlive(cpu_time) || job.isFinished())
+    }
+    */
 
     dumpJobs() {
         this.jobs.forEach((job) => {
@@ -168,10 +190,12 @@ class SystemState {
         //     console.log("CPU" + i + " gets process " + assignments[i])
         // }
 
+        console.log("This is where we would add this cycle's jobs to the trace.")
         // Makes a deep copy according to stack overflow
-        let clonedArray = JSON.parse(JSON.stringify(assignments))
+        // let clonedArray = JSON.parse(JSON.stringify(assignments))
 
-        this.trace.push(clonedArray.slice()) // Make a copy of the array, just in case something else messes with it later
+        // this.trace.push(clonedArray.slice()) // Make a copy of the array, just in case something else messes with it later
+        this.trace.push("adding something to the trace so that the clock count advances")
     }
 }
 
@@ -179,14 +203,66 @@ class SystemState {
 // 1. get FIFO working
 // 2. Add multiple cores
 
+function throwError(msg) {
+    alert(msg)
+    console.error(msg)
+}
 
+let MIN_JOBS = 4
+let MAX_JOBS = 4
+let MIN_WAIT_TIME = 1
+let MAX_WAIT_TIME = 10 // Maximum time any job needs to wait for something
+let MIN_COMPUTE_TIME = 1
+let MAX_COMPUTE_TIME = 10 // Maximum time any job needs to compute before needing to wait or finish
+let MAX_WAIT_CYCLES = 4 // Maximum _number_ of times any job needs to wait for something like
+let MIN_PRIORITY = 0
+let MAX_PRIORITY = 3
+let MAX_ARRIVAL_TIME = 40
+// We need some way of stopping if we have an infinite loop, for some reason. So, figure out the
+// longest a process can need to run (_not_ counting time waiting in the run queue) and add that
+// to the latest possible arrival time. This should give us a rough idea of clock cycle count whereupon
+// we can terminate the simulation with an error. We need to pad this number (probably by multiplying by
+// some amount) in order to account for time the process is waiting in the run queue.
+let LAST_EXPECTED_CYCLE = MAX_ARRIVAL_TIME + (MAX_COMPUTE_TIME * (1 + MAX_WAIT_CYCLES)) + (MAX_WAIT_TIME * MAX_WAIT_CYCLES)
+
+function createJob(job_number) {
+    let priority = MIN_PRIORITY + Math.floor(Math.random() * (MAX_PRIORITY - MIN_PRIORITY))
+    let arrival_time = Math.floor(Math.random() * MAX_ARRIVAL_TIME)
+    // We _must_ have a starting computation
+    var lifecycle = []
+    lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(Math.random() * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
+    let num_waits = Math.floor(Math.random() * MAX_WAIT_CYCLES)
+    for(j=0; j<num_waits; j++) {
+        lifecycle.push("w" + (MIN_WAIT_TIME + Math.floor(Math.random() * (MAX_WAIT_TIME - MIN_WAIT_TIME))))
+        lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(Math.random() * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
+    }
+    console.log("Creating a job #" + job_number + " with arrival time " + arrival_time + " and priority " + priority)
+    return new Job(job_number, arrival_time, priority, lifecycle)
+}
+
+// Creates a list of Jobs
+function createJobList() {
+    // Pick a number between MIN_JOBS and MAX_JOBS
+    let num_jobs = MIN_JOBS + Math.floor(Math.random() * (MAX_JOBS - MIN_JOBS))
+    var jobs = []
+    for (i=0; i<num_jobs; i++) {
+        jobs.push(createJob(i))
+    }
+    // We need to make sure that _some_ job starts at time=0 (or it makes for a boring start to the simulation)
+    // so we just pick job #0
+    jobs[0].arrival_time = 0
+    console.log("Last expected cycle is " + LAST_EXPECTED_CYCLE)
+    return jobs
+}
 
 function simulator() {
-    var starting_jobs = [
-        new Job(0, 0, 3, ["c3", "w2", "c4"]),
-        new Job(1, 2, 3, ["c8", "w12", "c24", "w1", "c1"]),
-        new Job(2, 5, 3, ["c22"])
-    ]
+
+    var starting_jobs = createJobList()
+    // var starting_jobs = [
+    //     new Job(0, 0, 3, ["c3", "w2", "c4"]),
+    //     new Job(1, 2, 3, ["c8", "w12", "c24", "w1", "c1"]),
+    //     new Job(2, 5, 3, ["c22"])
+    // ]
 
     // Define the system we're running on
     let system = new System("1-CPU System", 1)
@@ -216,25 +292,44 @@ function computeScheduleWith(system, system_state, scheduler) {
 
     // Run until nothing is alive
     //while (starting_jobs.some((job) => job.isAlive())) {
-    for (i = 0; i < 3; i++) {
+    while (system_state.getUnfinishedJobs().length > 0) {
+        if (system_state.getSystemTime() > LAST_EXPECTED_CYCLE * 2) {
+            throwError("ERROR: The system clock reached " + system_state.getSystemTime() + " which is longer than we expected to need for computation. It's likely that the simulator has an infinite loop, somewhere.")
+        }
         let cpu_time = system_state.getSystemTime()
-        cpu_assignments = scheduler.schedule(system_state)
+        schedule = scheduler.schedule(system_state)
+        schedule.assignments.forEach((job) => {
+            console.log("Assignment = " + JSON.stringify(job))
+        })
 
-        // Decrease wait and cpu times based upon what the scheduler decided
+        // We need to process the waiting jobs, first! Otherwise, a job with "c1" that gets
+        // computation will get its last computation done, and _then_ get a cycle of wait
+        // reduced
         system_state.jobs.forEach((job) => {
-            if (job.number in cpu_assignments) {
-                job.recordComputation()  // Reduce computation
-            }
+            console.log("Checking job #" + job.job_number)
             if (job.isWaiting()) {
+                console.log("Looks like job #" + job.job_number + " is waiting, so we'll decrement it's wait time")
+                console.log("Before: " + JSON.stringify(job.lifecycle))
                 job.recordWait()        // Reduce wait
+                console.log("After : " + JSON.stringify(job.lifecycle))
+            }
+        })
+        // Now, give the selected processes some computation
+        schedule.assignments.forEach((job) => {
+            if (job == null) {
+                console.log("Got a null assignment. This isn't a bad thing. Just noting it in the logs during development")
+            } else {
+                console.log("Looks like job #" + job.job_number + " got some CPU time")
+                console.log("Before: " + JSON.stringify(job.lifecycle))
+                job.recordComputation()  // Reduce computation    
+                console.log("After : " + JSON.stringify(job.lifecycle))
             }
         })
 
+
         // Add these assignments to the overall schedule
-        // QUEUEs
-        system_state.recordSchedule(cpu_assignments)  // CPU Assignments
-        system_state.dumpStatus() // JOBS
-        // Current Aggregate States
+        system_state.recordSchedule(schedule)
+        system_state.dumpStatus()
     }
 
     // Final Agregate Stats
