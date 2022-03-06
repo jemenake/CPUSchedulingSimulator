@@ -108,13 +108,6 @@ class RandomScheduler extends Scheduler {
 class FIFOScheduler extends Scheduler {
     constructor(name, system) {
         super(name, system)
-        // Some day for multi-queue support
-        // this.queue_names = []
-        // this.queues = []
-        // for(i=0; i<system.cpus.count; i++) {
-        //     this.queue_names.push("CPU" + i)
-        //     this.queues.push([])
-        // }
         console.log("FIFOScheduler constructor")
     }
 
@@ -162,7 +155,7 @@ class FIFOScheduler extends Scheduler {
     }
 }
 
-// RR
+// Round-Robin scheduler alots a certain number of cyles for each process, and switches to the next process in line once that limit is hit
 class RRScheduler extends FIFOScheduler {
     constructor(name, system, cycle_count, cycle_limit) {
         super(name, system)
@@ -197,7 +190,23 @@ class RRScheduler extends FIFOScheduler {
     }
 }
 
-// priority scheduler: have a certain number of queues (default 3 say)
+// Priority scheduler maintains a queue of queues for each priority level
+class PriorityScheduler extends FIFOScheduler {
+    constructor(name, system, num_priority_levels) {
+        super(name, system)
+        this.num_priority_levels = num_priority_levels
+        // Some day for multi-queue support
+        // this.queue_names = []
+        // this.queues = []
+        // for(i=0; i<system.cpus.count; i++) {
+        //     this.queue_names.push("CPU" + i)
+        //     this.queues.push([])
+        // }
+        console.log("FIFOScheduler constructor")
+    }
+}
+
+// Priority scheduler: have a certain number of queues (default 3 say)
 
 // schedulers need to return assignments and queues
 // can return a list of queues of jobs (even a list of one queue)
