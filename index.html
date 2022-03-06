@@ -4,7 +4,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-	<title>Basic Bootstrap Template</title>
+	<title>CPU Scheduling Simulator</title>
 	<!-- Bootstrap CSS file -->
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
 	<title>Ground Reference Simulator</title>
@@ -73,6 +73,14 @@ CPU Scheduler Simulator
 		</select>
 	</div>
 </div>
+
+<div class="row" style="text-align:center">
+	<div class="col-md-12">
+		<input type="button" value="Run" style="border-radius: 6px;" onclick="startSimulation();">
+		<input type="button" value="Reset" style="border-radius: 6px;" onclick="resetSimulation();">
+	</div>
+</div>
+
 
 <div class="container">
 	<!-- Scheduler Box -->
@@ -225,26 +233,14 @@ CPU Scheduler Simulator
 </div>
 <script>
 	var canvas = document.querySelector("canvas");
-	var ctx = canvas.getContext("2d");
 
 	var min_x = 0;
-	var max_x = canvas.width;
 	var min_y = 0;
-	var max_y = canvas.height;
 
 	var margin = 50;
 
 	var heading_increment = 5;
 	var velocity_increment = 5;
-	var plane_size = Math.min(max_x, max_y) / 10;
-
-	var plane_heading;
-	var plane_velocity;
-	var wind_heading;
-	var wind_velocity;
-	var plane_x;
-	var plane_y;
-
 
 	var simulation_rate = 5;
 	var simulation_increment = 1;
@@ -305,91 +301,18 @@ CPU Scheduler Simulator
 	function draw() {
 
 
-		ctx.clearRect(0, 0, max_x, max_y);
-
-		ctx.lineWidth = 2;
-		ctx.strokeStyle = "rgb(255, 0, 0)";
-		roundRect(ctx, margin, margin, max_x - 2*margin, max_y - 2*margin, 50);
-
-		ctx.strokeStyle = "rgb(0, 0, 255)";
-		ctx.beginPath();
-		ctx.arc(max_x/2, max_y/2, max_x/2 - margin, 0, 2 * Math.PI);
-		ctx.stroke();
-
-
 
 		var p_angle = (plane_heading - 90) * Math.PI / 180;
 		var w_angle = (wind_heading - 90)* Math.PI / 180;
 		var groundspeed_x = plane_velocity * Math.cos(p_angle) + wind_velocity * Math.cos(w_angle);
 		var groundspeed_y = plane_velocity * Math.sin(p_angle) + wind_velocity * Math.sin(w_angle);
-		var groundspeed = Math.sqrt(Math.pow(groundspeed_x,2) + Math.pow(groundspeed_y,2));
-		var groundtrack = normalizeAngle360( Math.atan2(groundspeed_y, groundspeed_x) * 180 / Math.PI + 90 );
-		var correction = normalizeAngle180(plane_heading - groundtrack);
 
 		document.getElementById("#airspeed").innerHTML = plane_velocity;
 		document.getElementById("#windspeed").innerHTML = wind_velocity;
-		document.getElementById("#groundspeed").innerHTML = Math.round(groundspeed);
-		document.getElementById("#groundtrack").innerHTML = Math.round(groundtrack);
-		document.getElementById("#windheading").innerHTML = wind_heading;
-		document.getElementById("#aircraftheading").innerHTML = plane_heading;
-		document.getElementById("#headingcorrection").innerHTML = Math.round(correction);
-	}
 
-	function normalizeAngle360(angle) {
-		while(angle < 0) {
-			angle+=360;
-		}
-		while(angle > 360) {
-			angle-=360;
-		}
-		return angle;
-	}
-
-	function normalizeAngle180(angle) {
-		angle = normalizeAngle360(angle);
-		if(angle > 180) {
-			angle -= 360;
-		}
-		return angle;
 	}
 
 
-	var plane_velocity_min = 40;
-	var plane_velocity_max = 110;
-	var wind_velocity_min = 0;
-	var wind_velocity_max = 50;
-	
-	function adjustAirspeed(adjustment) {
-		plane_velocity += adjustment;
-		plane_velocity = Math.max(plane_velocity, plane_velocity_min);
-		plane_velocity = Math.min(plane_velocity, plane_velocity_max);
-	}
-
-	function adjustWindspeed(adjustment) {
-		wind_velocity += adjustment;
-		wind_velocity = Math.max(wind_velocity, wind_velocity_min);
-		wind_velocity = Math.min(wind_velocity, wind_velocity_max);
-	}
-
-	function adjustPlaneHeading(adjustment) {
-		plane_heading = plane_heading + adjustment;
-		while(plane_heading < 0) {
-			plane_heading += 360;
-		}
-		while(plane_heading > 360) {
-			plane_heading -= 360;
-		}
-	}
-
-	function adjustWindHeading(adjustment) {
-		wind_heading = wind_heading + adjustment;
-		while(wind_heading < 0) {
-			wind_heading += 360;
-		}
-		while(wind_heading > 360) {
-			wind_heading -= 360;
-		}
-	}
 
 
 
@@ -470,10 +393,8 @@ CPU Scheduler Simulator
 		console.debug("Moved " + e.deltaY);
 	}
 
-	document.getElementById("#canvas").addEventListener("wheel", wheelMoved);
-
 	draw();
-	resetSimulation();
+
 
 </script>
 </body>
