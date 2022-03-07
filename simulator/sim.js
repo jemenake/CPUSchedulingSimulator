@@ -150,12 +150,11 @@ class System {
 class SystemState {
     constructor(jobs) {
         this.jobs = jobs
-
-        this.trace = OverallTraceObject([], NULL, NULL) // This will contain the list of all process->CPU assignments. It's length will be the system time
+        this.trace = new OverallTraceObject([], null, null) // This will contain the list of all process->CPU assignments. It's length will be the system time
     }
 
     getSystemTime() {
-        return this.trace.length
+        return this.trace.trace_object_list.length
     }
 
     // Returns all jobs which haven't finished
@@ -343,9 +342,10 @@ function computeScheduleWith(system, system_state, scheduler) {
             }
         })
 
-        // Trace update
+        // Trace update: Error - needs to clone only works on a single job not a list of jobs
         system_state.trace.trace_object_list.push(TraceObject(system_state.jobs.clone(), assignments.queues.clone(), assignments.assignments.clone()))
         system_state.trace.queue_names = assignments.queue_names
+        
         // system_state.recordSchedule(schedule) Old logic for clone
         // system_state.dumpStatus()
     }
