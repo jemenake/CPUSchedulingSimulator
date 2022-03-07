@@ -45,6 +45,21 @@ current_proccesses = [
 //    }
 // }
 
+class OverallTraceObject {
+    constructor(trace_object_list, queue_names, stats) {
+        this.trace_object_list = trace_object_list
+        this.queue_names = queue_names
+        this.stats = stats
+    }
+}
+
+class TraceObject {
+    constructor(jobs, queues, assignments) {
+        this.jobs = jobs
+        this.queues = queues
+        this.assignments = assignments
+    }
+}
 
 // This class describes a process/thread/job
 // Its lifecycle is determined by an array of strings describing how many cycles it computes/waits for
@@ -135,7 +150,8 @@ class System {
 class SystemState {
     constructor(jobs) {
         this.jobs = jobs
-        this.trace = [] // This will contain the list of all process->CPU assignments. It's length will be the system time
+
+        this.trace = OverallTraceObject([], NULL, NULL) // This will contain the list of all process->CPU assignments. It's length will be the system time
     }
 
     getSystemTime() {
@@ -327,10 +343,11 @@ function computeScheduleWith(system, system_state, scheduler) {
             }
         })
 
-
-        // Add these assignments to the overall schedule
-        system_state.recordSchedule(schedule)
-        system_state.dumpStatus()
+        // Trace update
+        system_state.trace.trace_object_list.push(TraceObject(system_state.jobs.clone(), assignments.queues.clone(), assignments.assignments.clone()))
+        system_state.trace.queue_names = assignments.queue_names
+        // system_state.recordSchedule(schedule) Old logic for clone
+        // system_state.dumpStatus()
     }
 
     // Final Agregate Stats
