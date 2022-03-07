@@ -109,7 +109,7 @@ class RandomScheduler extends Scheduler {
 } 
 
 // FIFO scheduler assigns jobs in a first-in-first-out manner
-class FIFOScheduler extends Scheduler {
+class FIFOScheduler extends RandomScheduler {
     constructor(name, system) {
         super(name, system)
         console.log("FIFOScheduler constructor")
@@ -117,11 +117,15 @@ class FIFOScheduler extends Scheduler {
 
     schedule(system_state) {
         var available_jobs = system_state.getRunningJobs()
+        console.log("available_jobs = " + JSON.stringify(available_jobs))
+        available_jobs.forEach((job) => {
+            console.log("Live Job: " + job.job_number + " " + JSON.stringify(job.lifecycle))
+        })
         var cur_jobs = this.getCurrentJobs(available_jobs)
         this.queues[0] = [...cur_jobs]
-        assigments = this.assignCPUJobs(available_jobs, "fifo")
+        var assignments = super.assignCPUJobs(available_jobs, "fifo")
         return {
-            "queues": [this.getJobNumbers(cur_jobs)],
+            "queues": this.queues,
             "queue_names": this.queue_names,
             "assignments": assignments
         }
@@ -134,14 +138,14 @@ class FIFOScheduler extends Scheduler {
 
         // Push previous jobs that are still live
         for (const prev_job of prev_jobs) {
-            if (job_exists(prev_job, available_jobs)) {
+            if (this.job_exists(prev_job, available_jobs)) {
                 cur_jobs.push(prev_job)
             }
         }
 
         // Push remaining live jobs
         for (const available_job of available_jobs) {
-            if (!job_exists(available_job, cur_jobs)) {
+            if (!this.job_exists(available_job, cur_jobs)) {
                 cur_jobs.push(available_job)
             }
         }
@@ -185,9 +189,9 @@ class RRScheduler extends FIFOScheduler {
             this.cycle_count = 0
         }
 
-        assigments = this.assignCPUJobs(available_jobs, "rr")
+        var assigments = this.assignCPUJobs(available_jobs, "rr")
         return {
-            "queues": [this.getJobNumbers(cur_jobs)],
+            "queues": this.queues,
             "queue_names": this.queue_names,
             "assignments": assignments
         }
