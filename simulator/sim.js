@@ -46,16 +46,19 @@ current_proccesses = [
 // }
 
 class OverallTraceObject {
-    constructor(trace_object_list, queue_names, stats) {
+    constructor(trace_object_list, system, scheduler_name) {
         this.trace_object_list = trace_object_list
-        this.queue_names = queue_names
-        this.stats = stats
+        this.queue_names = null
+        this.stats = null
+        this.system = system
+        this.scheduler_name = scheduler_name
     }
 }
 
 class TraceObject {
-    constructor(jobs, queues, assignments) {
-        this.jobs = jobs
+    constructor(live_jobs, waiting_jobs, queues, assignments) {
+        this.live_jobs = live_jobs
+        this.waiting_jobs = waiting_jobs
         this.queues = queues
         this.assignments = assignments
     }
@@ -150,11 +153,11 @@ class System {
 class SystemState {
     constructor(jobs) {
         this.jobs = jobs
-        this.trace = new OverallTraceObject([], null, null) // This will contain the list of all process->CPU assignments. It's length will be the system time
-    }
+        this.cycle = 0
+        }
 
     getSystemTime() {
-        return this.trace.trace_object_list.length
+        return this.cycle
     }
 
     // Returns all jobs which haven't finished
@@ -171,6 +174,11 @@ class SystemState {
     // Get all jobs which are waiting for computation
     getRunningJobs() {
         return this.getLiveJobs().filter((job) => (! job.isWaiting()))
+    }
+
+    // Get all jobs which are waiting for computation
+    getWaitingJobs() {
+        return this.getLiveJobs().filter((job) => (job.isWaiting()))
     }
 
     /* not used currently
@@ -273,6 +281,8 @@ function createJobList() {
 function simulator() {
 
     var starting_jobs = createJobList()
+
+    var overall_trace_object_list = []
     // var starting_jobs = [
     //     new Job(0, 0, 3, ["c3", "w2", "c4"]),
     //     new Job(1, 2, 3, ["c8", "w12", "c24", "w1", "c1"]),
@@ -299,21 +309,24 @@ function simulator() {
     // At this point, we have a list of jobs, and we can cycle through all of the schedulers
     schedulers.forEach((scheduler) => {
         console.log("Simulating scheduler named : " + scheduler.name)
-        computeScheduleWith(system, system_state, scheduler)
+        overall_trace_object_list.push(computeScheduleWith(system, system_state, scheduler))
     })
+
+    return overall_trace_object_list
 }
 
 function computeScheduleWith(system, system_state, scheduler) {
+    system_state.cycle = 0
     console.log("computeSchedule() called with the " + system.name + " and " + scheduler.name + " and " + system_state.jobs.length + " jobs")
-
+    trace = new OverallTraceObject([], system, scheduler.name)
     // Run until nothing is alive
     //while (starting_jobs.some((job) => job.isAlive())) {
     while (system_state.getUnfinishedJobs().length > 0) {
         if (system_state.getSystemTime() > LAST_EXPECTED_CYCLE * 2) {
             throwError("ERROR: The system clock reached " + system_state.getSystemTime() + " which is longer than we expected to need for computation. It's likely that the simulator has an infinite loop, somewhere.")
         }
-        let cpu_time = system_state.getSystemTime()
-        schedule = scheduler.schedule(system_state)
+        
+        let schedule = scheduler.schedule(system_state)
         schedule.assignments.forEach((job) => {
             console.log("Assignment = " + JSON.stringify(job))
         })
@@ -342,13 +355,28 @@ function computeScheduleWith(system, system_state, scheduler) {
             }
         })
 
-        // Trace update: Error - needs to clone only works on a single job not a list of jobs
-        system_state.trace.trace_object_list.push(TraceObject(system_state.jobs.clone(), assignments.queues.clone(), assignments.assignments.clone()))
-        system_state.trace.queue_names = assignments.queue_names
+        // Trace update
+            trace.trace_object_list.push(
+                new TraceObject(
+                system_state.getRunningJobs().reduce((list, job) => list.concat(job.clone()), []),  // Live Jobs
+                system_state.getWaitingJobs().reduce((list, job) => list.concat(job.clone()), []),  // Waiting Jobs
+                schedule.queues.reduce((outer_result_list, inner_list) => outer_result_list.concat( // Outer list of queues
+                    inner_list.length > 0 ? inner_list.reduce((inner_result_list, job) => inner_result_list.concat(job.clone()), []) : [] // Inner list of queues
+                    )
+                    , []),                  // Queues
+                schedule.assignments.reduce((list, job) => job != null ? list.concat(job.clone()) : list.concat(null), []))             // CPU assigments
+                )
         
-        // system_state.recordSchedule(schedule) Old logic for clone
-        // system_state.dumpStatus()
+        // Constant Trace Values
+        trace.queue_names = schedule.queue_names
+        trace.system = system
+        trace.scheduler_name = scheduler.name
+
+        // Incriment cycle count
+        system_state.cycle += 1
     }
+
+    return trace;
 
     // Final Agregate Stats
 
