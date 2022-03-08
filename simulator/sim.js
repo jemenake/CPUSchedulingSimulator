@@ -356,7 +356,7 @@ function computeScheduleWith(system, system_state, scheduler) {
         // reduced
         system_state.jobs.forEach((job) => {
             console.log("Checking job #" + job.job_number)
-            if (job.isWaiting() & job.isAlive()) {
+            if (job.isWaiting()) {
                 console.log("Looks like job #" + job.job_number + " is waiting, so we'll decrement it's wait time")
                 console.log("Before: " + JSON.stringify(job.lifecycle))
                 job.recordWait()        // Reduce wait
@@ -371,18 +371,22 @@ function computeScheduleWith(system, system_state, scheduler) {
             } else {
                 console.log("Looks like job #" + job.job_number + " got some CPU time")
                 console.log("Before: " + JSON.stringify(job.lifecycle))
-                job.recordComputation(cycle)  // Reduce computation    
+                job.recordComputation(system_state.cycle)  // Reduce computation    
                 console.log("After : " + JSON.stringify(job.lifecycle))
             }
         })
 
-        // Add to wait time
+        // Add to wait time, by finding jobs that are running and not in a cpu
         system_state.getRunningJobs().forEach((running_job) => {
             let found = false;
-            // schedule.assignments.forEach((assignement) => {
-            //     if assignement == 
-            // })
-
+            schedule.assignments.forEach((assignement) => {
+                if (assignement != null && assignement.job_number == running_job.job_number){
+                    found = true
+                }
+            })
+            if (!found){
+                running_job.waiting_time += 1
+            }
         })
 
         // Trace update
@@ -406,29 +410,7 @@ function computeScheduleWith(system, system_state, scheduler) {
         system_state.cycle += 1
     }
 
+    // Calculate Agregate Stats
+
     return trace;
-
-    // Final Agregate Stats
-
-
-
-    // Based on result add to final schedule list for gui demo
-    // job_to_run.add_to_results()
-
-    // Prep info
-    // cycle++
-    // for(let job in starting_objs){
-
-
-    // Append to the_schedule whatever the process->CPU assignments are for this cycle            if (job.arrival_time == cycle){
-    // current_jobs.push(job)
-    // Give the resulting schedule to the UI 
-
-    //    }
-    // }
-    // list_of_objects // pull in procceses that just arrived, update any computations done on this end
-    // }
 }
-//
-
-// simulator()
