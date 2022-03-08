@@ -304,7 +304,8 @@ function simulator() {
 
     // Here's where we make a list of every scheduler we want to run this job list against
     //let schedulers = [new RandomScheduler("Random Schedule", system)]
-    let schedulers = [new FIFOScheduler("FIFO Schedule", system)]
+    //let schedulers = [new FIFOScheduler("FIFO Schedule", system)]
+    let schedulers = [new RRScheduler("RR Schedule", system, 0, 2)]
 
     // At this point, we have a list of jobs, and we can cycle through all of the schedulers
     schedulers.forEach((scheduler) => {
