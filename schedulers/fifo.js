@@ -172,7 +172,7 @@ class RRScheduler extends FIFOScheduler {
         console.log("RRScheduler constructor")
     }
 
-    schedule(system, system_state) {
+    schedule(system_state) {
         var available_jobs = system_state.getRunningJobs()
         var cur_jobs = this.getCurrentJobs(available_jobs)
         this.queues[0] = [...cur_jobs]
@@ -184,12 +184,14 @@ class RRScheduler extends FIFOScheduler {
         }
 
         // Current job has run out of cycles so move it to the back of the line and reset count
-        if (this.cycle_count > cycle_limit) {
-            this.cur_jobs.shift(this.cur_jobs.pop())
+        if (this.cycle_count >= this.cycle_limit) {
+            cur_jobs.shift(cur_jobs.pop())
             this.cycle_count = 0
+        } else {
+            this.cycle_count++
         }
 
-        var assigments = this.assignCPUJobs(available_jobs, "rr")
+        var assignments = this.assignCPUJobs(cur_jobs, "rr")
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -203,29 +205,76 @@ class PriorityScheduler extends FIFOScheduler {
     constructor(name, system, num_priority_levels) {
         super(name, system)
         this.num_priority_levels = num_priority_levels
-        // Some day for multi-queue support
-        // this.queue_names = []
-        // this.queues = []
-        // for(i=0; i<system.cpus.count; i++) {
-        //     this.queue_names.push("CPU" + i)
-        //     this.queues.push([])
-        // }
-        console.log("FIFOScheduler constructor")
+        this.queues = []
+        this.queue_names = []
+        for(let i = 0; i < this.num_priority_levels; i++) {
+            this.queue_names.push("Priority Queue " + i)
+            this.queues.push([])
+        }
+        console.log("PriorityScheduler constructor")
+    }
+
+    schedule(system_state) {
+        var available_jobs = system_state.getRunningJobs()
+        var available_jobs_by_priority = this.getAvailableJobsByPriority(available_jobs)
+        var cur_jobs_by_priority = this.getCurrentJobsByPriority(available_jobs_by_priority)
+
+        // Copy current jobs to queues
+        for (let i = 0; i < this.num_priority_levels; i++) {
+            this.queues[i] = [...cur_jobs_by_priority[i]]
+        }
+
+        // Since jobs are in priority order, we can flatten it and treat it as normal FIFO assignment
+        var assignments = this.assignCPUJobs(cur_jobs_by_priority.flat(), "fifo")
+        return {
+            "queues": this.queues,
+            "queue_names": this.queue_names,
+            "assignments": assignments
+        }
+    }
+
+    // Returns available jobs as a list of lists of jobs by priority level (one list for each priority level)
+    getAvailableJobsByPriority(available_jobs) {
+        var available_jobs_by_priority = []
+        for (let i = 0; i < this.num_priority_levels; i++) {
+            available_jobs_by_priority.push([])
+        }
+
+        for (const job of available_jobs) {
+            available_jobs_by_priority[job.priority].push(job)
+        }
+        return available_jobs_by_priority
+    }
+
+    // Returns a list of lists of current live jobs in FIFO order by priority level
+    getCurrentJobsByPriority(available_jobs_by_priority) {
+        var cur_jobs_by_priority = []
+        for (let i = 0; i < this.num_priority_levels; i++) {
+            cur_jobs_by_priority.push([])
+        }
+        var prev_jobs = this.queues[0]
+
+        for (let i = 0; i < this.num_priority_levels; i++) {
+            // Push previous jobs that are still live
+            var prev_jobs = this.queues[i]
+            for (const prev_job of prev_jobs) {
+                if (this.job_exists(prev_job, available_jobs_by_priority[i])) {
+                    cur_jobs_by_priority[i].push(prev_job)
+                }
+            }
+    
+            // Push remaining live jobs
+            for (const available_job of available_jobs_by_priority[i]) {
+                if (!this.job_exists(available_job, cur_jobs_by_priority[i])) {
+                    cur_jobs_by_priority.push(available_job)
+                }
+            }
+        }
+        return cur_jobs_by_priority
     }
 }
 
-// Priority scheduler: have a certain number of queues (default 3 say)
-
-// schedulers need to return assignments and queues
-// can return a list of queues of jobs (even a list of one queue)
-// list of current cpu assignments of jobs
-// have a function to get queue names for every scheduler ex: ["high priority", "low priority"]
-// have a prev_queues list for number of queues
-// each job has a priority (up to 4)
 
 // CFS: every 20ms every process gets a little bit of time if they haven't had any
-
-// fifo twist: fifo with no priority but a queue for every processor (so 3 processors would have 3 queues) and put new processes in the shortest queue (queue with shortest length)
-
 
 // SRTN
