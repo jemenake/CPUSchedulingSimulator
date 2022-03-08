@@ -192,7 +192,7 @@ class SystemState {
 
     // Get all jobs which are waiting for computation
     getRunningJobs() {
-        return this.getLiveJobs().filter((job) => (! job.isWaiting()))
+        return this.getLiveJobs().filter((job) => job.isAlive(this.cycle) && (! job.isWaiting()))
     }
 
     // Get all jobs which are waiting for computation
@@ -297,40 +297,29 @@ function createJobList() {
     return jobs
 }
 
-function simulator() {
-
+function simulator(system, schedulers) {
+    console.log("1")
     var starting_jobs = createJobList()
 
     var overall_trace_object_list = []
-    // var starting_jobs = [
-    //     new Job(0, 0, 3, ["c3", "w2", "c4"]),
-    //     new Job(1, 2, 3, ["c8", "w12", "c24", "w1", "c1"]),
-    //     new Job(2, 5, 3, ["c22"])
-    // ]
-
-    // Define the system we're running on
-    let system = new System("1-CPU System", 1)
-
-    let system_state = new SystemState(starting_jobs)
-
-    // Grab tasks that start at time zero if any
-    current_jobs = []
-    for (let job in starting_jobs) {
-        if (job.arrival_time == 0) {
-            current_jobs.push(job)
-        }
-    }
 
     // Here's where we make a list of every scheduler we want to run this job list against
-    //let schedulers = [new RandomScheduler("Random Schedule", system)]
-    //let schedulers = [new FIFOScheduler("FIFO Schedule", system)]
-    let schedulers = [new RRScheduler("RR Schedule", system, 0, 2)]
+    // let schedulers = [new RandomScheduler("Random Schedule", system)]
 
     // At this point, we have a list of jobs, and we can cycle through all of the schedulers
     schedulers.forEach((scheduler) => {
         console.log("Simulating scheduler named : " + scheduler.name)
+
+        var working_copy = starting_jobs.reduce((list, job) => list.concat(job.clone()), [])
+        let system_state = new SystemState(working_copy)
+
         overall_trace_object_list.push(computeScheduleWith(system, system_state, scheduler))
     })
+
+    // Here's where we make a list of every scheduler we want to run this job list against
+    //let schedulers = [new RandomScheduler("Random Schedule", system)]
+    //let schedulers = [new FIFOScheduler("FIFO Schedule", system)]
+    // let schedulers = [new RRScheduler("RR Schedule", system, 0, 2)]
 
     return overall_trace_object_list
 }
@@ -378,6 +367,7 @@ function computeScheduleWith(system, system_state, scheduler) {
 
         // Add to wait time, by finding jobs that are running and not in a cpu
         system_state.getRunningJobs().forEach((running_job) => {
+
             let found = false;
             schedule.assignments.forEach((assignement) => {
                 if (assignement != null && assignement.job_number == running_job.job_number){
@@ -392,7 +382,7 @@ function computeScheduleWith(system, system_state, scheduler) {
         // Trace update
             trace.trace_object_list.push(
                 new TraceObject(
-                system_state.getRunningJobs().reduce((list, job) => list.concat(job.clone()), []),  // Live Jobs
+                system_state.getRunningJobs(system_state.cycle).reduce((list, job) => list.concat(job.clone()), []),  // Live Jobs
                 system_state.getWaitingJobs().reduce((list, job) => list.concat(job.clone()), []),  // Waiting Jobs
                 schedule.queues.reduce((outer_result_list, inner_list) => outer_result_list.concat( // Outer list of queues
                     inner_list.length > 0 ? inner_list.reduce((inner_result_list, job) => inner_result_list.concat(job.clone()), []) : [] // Inner list of queues
