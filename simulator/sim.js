@@ -76,7 +76,18 @@ class Job {
         // This clones the lifecycle (as long as it remains an array of strings) so that it will be easy to create
         // clone a job with something like:  new_job = new Job(old_job)
         this.lifecycle = lifecycle.slice()
+
+        // Metrics
+        this.first_computation_time = -1  // Used for response time
+        this.finished_cycle_time = -1     // Used for turnaround
+        this.waiting_time = 0             // Waiting time when wants to compute
     }
+
+    turnAroundTime(){
+
+    }
+
+
 
     clone() {
         return new Job(this.job_number, this.arrival_time, this.priority, this.lifecycle)
@@ -118,7 +129,7 @@ class Job {
         }
     }
 
-    recordComputation() {
+    recordComputation(cycle) {
         // Make sure that we're really waiting
         if (this.isWaiting()) {
             // This is actually something we shouldn't throw an exeption for. This would just indicate
@@ -133,6 +144,14 @@ class Job {
             this.lifecycle = this.lifecycle.slice(1)
         } else {
             this.lifecycle[0] = "c" + (number - 1)
+        }
+
+        if (this.first_computation_time == -1){
+            this.first_computation_time = cycle
+        }
+
+        if (this.isFinished() & this.finished_cycle_time == -1){
+            this.first_computation_time = cycle
         }
     }
 }
@@ -335,13 +354,14 @@ function computeScheduleWith(system, system_state, scheduler) {
         // reduced
         system_state.jobs.forEach((job) => {
             console.log("Checking job #" + job.job_number)
-            if (job.isWaiting()) {
+            if (job.isWaiting() & job.isAlive()) {
                 console.log("Looks like job #" + job.job_number + " is waiting, so we'll decrement it's wait time")
                 console.log("Before: " + JSON.stringify(job.lifecycle))
                 job.recordWait()        // Reduce wait
                 console.log("After : " + JSON.stringify(job.lifecycle))
             }
         })
+
         // Now, give the selected processes some computation
         schedule.assignments.forEach((job) => {
             if (job == null) {
@@ -349,9 +369,18 @@ function computeScheduleWith(system, system_state, scheduler) {
             } else {
                 console.log("Looks like job #" + job.job_number + " got some CPU time")
                 console.log("Before: " + JSON.stringify(job.lifecycle))
-                job.recordComputation()  // Reduce computation    
+                job.recordComputation(cycle)  // Reduce computation    
                 console.log("After : " + JSON.stringify(job.lifecycle))
             }
+        })
+
+        // Add to wait time
+        system_state.getRunningJobs().forEach((running_job) => {
+            let found = false;
+            // schedule.assignments.forEach((assignement) => {
+            //     if assignement == 
+            // })
+
         })
 
         // Trace update
