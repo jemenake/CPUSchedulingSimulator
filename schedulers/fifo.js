@@ -71,7 +71,7 @@ class FIFOScheduler extends RandomScheduler {
         super.logAvailableJobs(available_jobs)
         var cur_jobs = this.getCurrentJobs(available_jobs)
         this.queues[0] = [...cur_jobs]
-        var assignments = super.assignCPUJobs(available_jobs, "fifo")
+        var assignments = super.assignCPUJobs(cur_jobs, "fifo")
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -101,14 +101,9 @@ class FIFOScheduler extends RandomScheduler {
     }
 
     // Checks if a given job exists in a list of jobs
-    job_exists(job, jobs) {
-        for (const j in jobs) {
-            if (job.job_number == j.job_number) {
-                return true
-            }
-        }
-        return false
-    }
+    job_exists(jobA, jobs) {
+        return jobs.some((jobB) => jobA.job_number == jobB.job_number)
+     }
 }
 
 // Round-Robin scheduler alots a certain number of cyles for each process, and switches to the next process in line once that limit is hit
