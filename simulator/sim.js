@@ -76,7 +76,18 @@ class Job {
         // This clones the lifecycle (as long as it remains an array of strings) so that it will be easy to create
         // clone a job with something like:  new_job = new Job(old_job)
         this.lifecycle = lifecycle.slice()
+
+        // Metrics
+        this.first_computation_time = -1  // Used for response time
+        this.finished_cycle_time = -1     // Used for turnaround
+        this.waiting_time = 0             // Waiting time when wants to compute
     }
+
+    turnAroundTime(){
+
+    }
+
+
 
     clone() {
         return new Job(this.job_number, this.arrival_time, this.priority, this.lifecycle)
@@ -118,7 +129,7 @@ class Job {
         }
     }
 
-    recordComputation() {
+    recordComputation(cycle) {
         // Make sure that we're really waiting
         if (this.isWaiting()) {
             // This is actually something we shouldn't throw an exeption for. This would just indicate
@@ -133,6 +144,14 @@ class Job {
             this.lifecycle = this.lifecycle.slice(1)
         } else {
             this.lifecycle[0] = "c" + (number - 1)
+        }
+
+        if (this.first_computation_time == -1){
+            this.first_computation_time = cycle
+        }
+
+        if (this.isFinished() & this.finished_cycle_time == -1){
+            this.first_computation_time = cycle
         }
     }
 }
@@ -173,7 +192,7 @@ class SystemState {
 
     // Get all jobs which are waiting for computation
     getRunningJobs() {
-        return this.getLiveJobs().filter((job) => (! job.isWaiting()))
+        return this.getLiveJobs().filter((job) => job.isAlive(this.cycle) && (! job.isWaiting()))
     }
 
     // Get all jobs which are waiting for computation
@@ -278,40 +297,29 @@ function createJobList() {
     return jobs
 }
 
-function simulator() {
-
+function simulator(system, schedulers) {
+    console.log("1")
     var starting_jobs = createJobList()
 
     var overall_trace_object_list = []
-    // var starting_jobs = [
-    //     new Job(0, 0, 3, ["c3", "w2", "c4"]),
-    //     new Job(1, 2, 3, ["c8", "w12", "c24", "w1", "c1"]),
-    //     new Job(2, 5, 3, ["c22"])
-    // ]
-
-    // Define the system we're running on
-    let system = new System("1-CPU System", 1)
-
-    let system_state = new SystemState(starting_jobs)
-
-    // Grab tasks that start at time zero if any
-    current_jobs = []
-    for (let job in starting_jobs) {
-        if (job.arrival_time == 0) {
-            current_jobs.push(job)
-        }
-    }
 
     // Here's where we make a list of every scheduler we want to run this job list against
-    //let schedulers = [new RandomScheduler("Random Schedule", system)]
-    //let schedulers = [new FIFOScheduler("FIFO Schedule", system)]
-    let schedulers = [new RRScheduler("RR Schedule", system, 0, 2)]
+    // let schedulers = [new RandomScheduler("Random Schedule", system)]
 
     // At this point, we have a list of jobs, and we can cycle through all of the schedulers
     schedulers.forEach((scheduler) => {
         console.log("Simulating scheduler named : " + scheduler.name)
+
+        var working_copy = starting_jobs.reduce((list, job) => list.concat(job.clone()), [])
+        let system_state = new SystemState(working_copy)
+
         overall_trace_object_list.push(computeScheduleWith(system, system_state, scheduler))
     })
+
+    // Here's where we make a list of every scheduler we want to run this job list against
+    //let schedulers = [new RandomScheduler("Random Schedule", system)]
+    //let schedulers = [new FIFOScheduler("FIFO Schedule", system)]
+    // let schedulers = [new RRScheduler("RR Schedule", system, 0, 2)]
 
     return overall_trace_object_list
 }
@@ -344,6 +352,7 @@ function computeScheduleWith(system, system_state, scheduler) {
                 console.log("After : " + JSON.stringify(job.lifecycle))
             }
         })
+
         // Now, give the selected processes some computation
         schedule.assignments.forEach((job) => {
             if (job == null) {
@@ -351,15 +360,29 @@ function computeScheduleWith(system, system_state, scheduler) {
             } else {
                 console.log("Looks like job #" + job.job_number + " got some CPU time")
                 console.log("Before: " + JSON.stringify(job.lifecycle))
-                job.recordComputation()  // Reduce computation    
+                job.recordComputation(system_state.cycle)  // Reduce computation    
                 console.log("After : " + JSON.stringify(job.lifecycle))
+            }
+        })
+
+        // Add to wait time, by finding jobs that are running and not in a cpu
+        system_state.getRunningJobs().forEach((running_job) => {
+
+            let found = false;
+            schedule.assignments.forEach((assignement) => {
+                if (assignement != null && assignement.job_number == running_job.job_number){
+                    found = true
+                }
+            })
+            if (!found){
+                running_job.waiting_time += 1
             }
         })
 
         // Trace update
             trace.trace_object_list.push(
                 new TraceObject(
-                system_state.getRunningJobs().reduce((list, job) => list.concat(job.clone()), []),  // Live Jobs
+                system_state.getRunningJobs(system_state.cycle).reduce((list, job) => list.concat(job.clone()), []),  // Live Jobs
                 system_state.getWaitingJobs().reduce((list, job) => list.concat(job.clone()), []),  // Waiting Jobs
                 schedule.queues.reduce((outer_result_list, inner_list) => outer_result_list.concat( // Outer list of queues
                     inner_list.length > 0 ? inner_list.reduce((inner_result_list, job) => inner_result_list.concat(job.clone()), []) : [] // Inner list of queues
@@ -377,29 +400,7 @@ function computeScheduleWith(system, system_state, scheduler) {
         system_state.cycle += 1
     }
 
+    // Calculate Agregate Stats
+
     return trace;
-
-    // Final Agregate Stats
-
-
-
-    // Based on result add to final schedule list for gui demo
-    // job_to_run.add_to_results()
-
-    // Prep info
-    // cycle++
-    // for(let job in starting_objs){
-
-
-    // Append to the_schedule whatever the process->CPU assignments are for this cycle            if (job.arrival_time == cycle){
-    // current_jobs.push(job)
-    // Give the resulting schedule to the UI 
-
-    //    }
-    // }
-    // list_of_objects // pull in procceses that just arrived, update any computations done on this end
-    // }
 }
-//
-
-// simulator()
