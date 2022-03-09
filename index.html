@@ -231,7 +231,7 @@ CPU Scheduler Simulator
 	let schedulers = [
 		new RandomScheduler("Random Scheduler", systems[0]),
 		new FIFOScheduler("FIFO Scheduler", systems[0]),
-		new RRScheduler("Round Robin Scheduler", systems[0]),
+		new RRScheduler("Round Robin Scheduler", systems[0], 1),
 	]
 
 	resetSimulation();

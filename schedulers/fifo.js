@@ -108,9 +108,9 @@ class FIFOScheduler extends RandomScheduler {
 
 // Round-Robin scheduler alots a certain number of cyles for each process, and switches to the next process in line once that limit is hit
 class RRScheduler extends FIFOScheduler {
-    constructor(name, system, cycle_count, cycle_limit) {
+    constructor(name, system, cycle_limit) {
         super(name, system)
-        this.cycle_count = cycle_count
+        this.cycle_count = 0
         this.cycle_limit = cycle_limit
         console.log("RRScheduler constructor")
     }
@@ -119,22 +119,24 @@ class RRScheduler extends FIFOScheduler {
         var available_jobs = system_state.getRunningJobs()
         super.logAvailableJobs(available_jobs)
         var cur_jobs = this.getCurrentJobs(available_jobs)
-        this.queues[0] = [...cur_jobs]
 
-        var last_process = this.queues[0][0]
-        // New job so reset cyle count
-        if (last_process != cur_jobs[0]) {
-            this.cycle_count = 0
+        // Only need to check cycles if this isn't the first cycle and there is more than one job
+        if (this.queues[0].length > 0 && cur_jobs.length > 1) {
+            var last_process = this.queues[0][0]
+            // New job so reset cyle count
+            if (last_process.job_number != cur_jobs[0].job_number) {
+                this.cycle_count = 0
+            }
+    
+            // Current job has run out of cycles so rotate jobs and reset count
+            if (this.cycle_count >= this.cycle_limit) {
+                cur_jobs.push(cur_jobs.shift())
+                this.cycle_count = 0
+            }
         }
+        this.cycle_count++
 
-        // Current job has run out of cycles so move it to the back of the line and reset count
-        if (this.cycle_count >= this.cycle_limit) {
-            cur_jobs.shift(cur_jobs.pop())
-            this.cycle_count = 0
-        } else {
-            this.cycle_count++
-        }
-
+        this.queues[0] = [...cur_jobs] // Saves potentially shifted jobs
         var assignments = this.assignCPUJobs(cur_jobs, "rr")
         return {
             "queues": this.queues,
@@ -316,5 +318,3 @@ class PriorityScheduler extends FIFOScheduler {
         return cur_jobs_by_priority
     }
 }
-
-// CFS: every 20ms every process gets a little bit of time if they haven't had any
