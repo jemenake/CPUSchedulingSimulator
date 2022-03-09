@@ -77,19 +77,6 @@ class RandomScheduler extends Scheduler {
         return assignments
     }
 
-    // Returns index of the shortest array of a 2D array
-    findShortestIndex2D(arr2d) {
-        min_len = arr2d[0].length
-        min_index = 0
-        for (let i = 1; i < arr2d.length; i++) {
-            if (arr2d[i].length < min_len) {
-                min_len = arr2d[i].length
-                min_index = i
-            }
-        }
-        return min_index
-    }
-
     findNullIndex2D(arr2d) {
         for (let i = 0; i < arr2d.length; i++) {
             if (arr2d[i] == null) {
@@ -200,6 +187,106 @@ class RRScheduler extends FIFOScheduler {
     }
 }
 
+// Multi scheduler maintains a queue of queues for each priority level
+class MultiFIFOScheduler extends FIFOScheduler {
+    constructor(name, system) {
+        super(name, system)
+        this.queues = []
+        this.queue_names = []
+        for(let i = 0; i < this.system.cpus.length; i++) {
+            this.queue_names.push("CPU" + i + " Queue")
+            this.queues.push([])
+        }
+        console.log("PriorityScheduler constructor")
+    }
+
+    schedule(system_state) {
+        var available_jobs = system_state.getRunningJobs()
+        var prev_jobs_live = this.getPrevJobsMulti(available_jobs)
+        var cur_jobs = this.getCurrentJobsMulti(prev_jobs_live, available_jobs)
+        for (let i = 0; i < this.queues.length; i++) {
+            this.queues[i] = [...cur_jobs[i]]
+        }
+
+        var assignments = super.assignCPUJobs(this.flattenByCol(cur_jobs), "fifo")
+        return {
+            "queues": this.queues,
+            "queue_names": this.queue_names,
+            "assignments": assignments
+        }
+    }
+
+    // Returns a list of lists of previous jobs that are still live
+    getPrevJobsMulti(available_jobs) {
+        prev_jobs_live = Array.from(Array(this.queues.length), () => [])
+
+        // Only add previous jobs that are still live
+        for (let i = 0; i < this.queues.length; i++) {
+            for (let j = 0; j < this.queues[i].length; j++) {
+                if (this.job_exists(this.queues[i][j], available_jobs)) {
+                    prev_jobs_live[i].push(this.queues[i][j])
+                }
+            }
+        }
+        return prev_jobs_live
+    }
+
+    // Returns an updated list of current jobs by adding on new jobs to previous
+    getCurrentJobsMulti(prev_jobs_live, available_jobs) {
+        new_jobs = getNewJobs(prev_jobs_live, available_jobs)
+        for (job of new_jobs) {
+            best_index = this.shortestListIndex(prev_jobs_live)
+            prev_jobs_live[best_index].push(job)
+        }
+        return prev_jobs_live
+    }
+
+    // Returns a list of jobs that are available but not in previous jobs
+    getNewJobs(prev_jobs_live, available_jobs) {
+        return available_jobs.filter(x => !prev_jobs_live.flat().includes(x))
+    }
+
+    // Takes a list of lists and returns a list of all elements in column order
+    // Ex: [[1,2], [3,4], [5]] => [1,3,5,2,4]
+    flattenByCol(lists) {
+        flattened = []
+        for (let col = 0; col < this.longestLengthList(lists); col++) {
+            for (let row = 0; row < lists.length; row++) {
+                if (col < lists[row].length) {
+                    flattened.push(lists[row][col])
+                }
+            }
+        }
+        return flattened
+    }
+
+    // Returns index of the shortest list of a list of lists
+    shortestListIndex(lists) {
+        min_len = lists[0].length
+        min_index = 0
+        for (let i = 1; i < lists.length; i++) {
+            if (lists[i].length < min_len) {
+                min_len = lists[i].length
+                min_index = i
+            }
+        }
+        return min_index
+    }
+
+    // Returns length of longest list in a list of irregular length lists
+    longestLengthList(lists) {
+        max_len = lists[0].length
+        max_index = 0
+        for (let i = 1; i < lists.length; i++) {
+            if (lists[i].length > max_len) {
+                max_len = lists[i].length
+                max_index = i
+            }
+        }
+        return max_len
+    }
+}
+
 // Priority scheduler maintains a queue of queues for each priority level
 class PriorityScheduler extends FIFOScheduler {
     constructor(name, system, num_priority_levels) {
@@ -248,10 +335,7 @@ class PriorityScheduler extends FIFOScheduler {
 
     // Returns a list of lists of current live jobs in FIFO order by priority level
     getCurrentJobsByPriority(available_jobs_by_priority) {
-        var cur_jobs_by_priority = []
-        for (let i = 0; i < this.num_priority_levels; i++) {
-            cur_jobs_by_priority.push([])
-        }
+        var cur_jobs_by_priority = Array.from(Array(this.num_priority_levels), () => [])
         var prev_jobs = this.queues[0]
 
         for (let i = 0; i < this.num_priority_levels; i++) {
@@ -274,7 +358,4 @@ class PriorityScheduler extends FIFOScheduler {
     }
 }
 
-
 // CFS: every 20ms every process gets a little bit of time if they haven't had any
-
-// SRTN
