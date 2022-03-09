@@ -361,7 +361,7 @@ CPU Scheduler Simulator
 		elements.forEach((element) => element.disabled = false)
 		// TOOD: Actually call the simulator with parameters from the UI
 		console.log("Running simulation")
-		let traces = simulator(getSelectedSystem(), schedulers)
+		let traces = simulator(getSelectedSystem(), schedulers, 55)
 		console.log("There are " + (traces.length) + " traces")
 		console.log("=============================")
 		traces.forEach(trace => console.log(JSON.stringify(trace)))
