@@ -345,7 +345,7 @@ function simulator(system, schedulers) {
 function computeScheduleWith(system, system_state, scheduler) {
     system_state.cycle = 0
     console.log("computeSchedule() called with the " + system.name + " and " + scheduler.name + " and " + system_state.jobs.length + " jobs")
-    trace = new OverallTraceObject([], system, scheduler.name)
+    let trace = new OverallTraceObject([], system, scheduler.name)
     // Run until nothing is alive
     //while (starting_jobs.some((job) => job.isAlive())) {
     while (system_state.getUnfinishedJobs().length > 0) {
@@ -398,17 +398,18 @@ function computeScheduleWith(system, system_state, scheduler) {
         })
 
         // Trace update
-            trace.trace_object_list.push(
-                new TraceObject(
-                system_state.getRunningJobs(system_state.cycle).reduce((list, job) => list.concat(job.clone()), []),  // Live Jobs
-                system_state.getWaitingJobs().reduce((list, job) => list.concat(job.clone()), []),  // Waiting Jobs
-                schedule.queues.reduce((outer_result_list, inner_list) => outer_result_list.concat( // Outer list of queues
-                    inner_list.length > 0 ? inner_list.reduce((inner_result_list, job) => inner_result_list.concat(job.clone()), []) : [] // Inner list of queues
-                    )
-                    , []),                  // Queues
-                schedule.assignments.reduce((list, job) => job != null ? list.concat(job.clone()) : list.concat(null), []))             // CPU assigments
-                )
+        trace.trace_object_list.push(
+            new TraceObject(
+            system_state.getRunningJobs(system_state.cycle).map(job => job.clone()),  // Live Jobs
+            system_state.getWaitingJobs().map(job => job.clone()),  // Waiting Jobs
+            schedule.queues.map((list) => // Outer list of queues
+                list.map((job) => list.length > 0 ? job.clone() : []) // Inner list of queues
+                ),               
+            schedule.assignments.reduce((list, job) => job != null ? list.concat(job.clone()) : list.concat(null), [])// CPU assigments
+            )
+        )             
         
+    
         // Constant Trace Values
         trace.queue_names = schedule.queue_names
         trace.system = system
