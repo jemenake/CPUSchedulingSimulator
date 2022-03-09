@@ -39,7 +39,7 @@ class RandomScheduler extends Scheduler {
     }
 
     assignCPUJobs(available_jobs, method) {
-        var assignments = Array(this.system.cpus.length).fill(null) // Start with an array of nulls for each CPU
+        var assignments = Array(this.system.cpus).fill(null) // Start with an array of nulls for each CPU
         // As long as there are available jobs to assign to a CPU and there are CPU's to assign _to_...
         while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
             let cpu_idx = assignments.findIndex((val) => val == null)
@@ -152,7 +152,7 @@ class MultiFIFOScheduler extends FIFOScheduler {
         super(name, system)
         this.queues = []
         this.queue_names = []
-        for(let i = 0; i < this.system.cpus.length; i++) {
+        for(let i = 0; i < this.system.cpus; i++) {
             this.queue_names.push("CPU" + i + " Queue")
             this.queues.push([])
         }
@@ -164,8 +164,9 @@ class MultiFIFOScheduler extends FIFOScheduler {
         super.logAvailableJobs(available_jobs)
         var prev_jobs_live = this.getPrevJobsMulti(available_jobs)
 
-        if (prev_jobs_live.length == 0) {
+        if (prev_jobs_live[0].length == 0) {
             var cur_jobs = [available_jobs]
+            this.queues[0] = [...cur_jobs]
         } else {
             var cur_jobs = this.getCurrentJobsMulti(prev_jobs_live, available_jobs)
             for (let i = 0; i < this.cur_jobs.length; i++) {
