@@ -162,19 +162,20 @@ class MultiFIFOScheduler extends FIFOScheduler {
     schedule(system_state) {
         var available_jobs = system_state.getRunningJobs()
         super.logAvailableJobs(available_jobs)
-        var prev_jobs_live = this.getPrevJobsMulti(available_jobs)
+        var prev_jobs = this.getPrevJobsMulti(available_jobs)
 
-        if (prev_jobs_live[0].length == 0) {
+        if (prev_jobs[0].length == 0) {
             var cur_jobs = [available_jobs]
-            this.queues[0] = [...cur_jobs]
+            this.queues[0] = cur_jobs[0]
         } else {
-            var cur_jobs = this.getCurrentJobsMulti(prev_jobs_live, available_jobs)
-            for (let i = 0; i < this.cur_jobs.length; i++) {
+            var cur_jobs = this.getCurrentJobsMulti(prev_jobs, available_jobs)
+            for (let i = 0; i < cur_jobs.length; i++) {
                 this.queues[i] = [...cur_jobs[i]]
             }
         }
 
         var assignments = super.assignCPUJobs(this.flattenByCol(cur_jobs), "fifo")
+        console.log("QUEUES: " + JSON.stringify(this.queues))
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -184,39 +185,40 @@ class MultiFIFOScheduler extends FIFOScheduler {
 
     // Returns a list of lists of previous jobs that are still live
     getPrevJobsMulti(available_jobs) {
-        var prev_jobs_live = Array.from(Array(this.queues.length), () => [])
+        var prev_jobs = Array.from(Array(this.queues.length), () => [])
 
         // Only add previous jobs that are still live
         for (let i = 0; i < this.queues.length; i++) {
             for (let j = 0; j < this.queues[i].length; j++) {
                 if (this.job_exists(this.queues[i][j], available_jobs)) {
-                    prev_jobs_live[i].push(this.queues[i][j])
+                    prev_jobs[i].push(this.queues[i][j])
                 }
             }
         }
-        return prev_jobs_live
+        return prev_jobs
     }
 
     // Returns an updated list of current jobs by adding on new jobs to previous
-    getCurrentJobsMulti(prev_jobs_live, available_jobs) {
-        var new_jobs = this.getNewJobs(prev_jobs_live, available_jobs)
+    getCurrentJobsMulti(prev_jobs, available_jobs) {
+        var new_jobs = this.getNewJobs(prev_jobs, available_jobs)
         for (var job of new_jobs) {
-            best_index = this.shortestListIndex(prev_jobs_live)
-            prev_jobs_live[best_index].push(job)
+            const best_index = this.shortestListIndex(prev_jobs)
+            prev_jobs[best_index].push(job)
         }
-        return prev_jobs_live
+        return prev_jobs
     }
 
     // Returns a list of jobs that are available but not in previous jobs
-    getNewJobs(prev_jobs_live, available_jobs) {
-        return available_jobs.filter(x => !prev_jobs_live.flat().includes(x))
+    getNewJobs(prev_jobs, available_jobs) {
+        return available_jobs.filter(x => !prev_jobs.flat().includes(x))
     }
 
     // Takes a list of lists and returns a list of all elements in column order
     // Ex: [[1,2], [3,4], [5]] => [1,3,5,2,4]
     flattenByCol(lists) {
         var flattened = []
-        for (let col = 0; col < this.longestLengthList(lists); col++) {
+        let maxColLen = this.longestLengthList(lists)
+        for (let col = 0; col < maxColLen; col++) {
             for (let row = 0; row < lists.length; row++) {
                 if (col < lists[row].length) {
                     flattened.push(lists[row][col])
