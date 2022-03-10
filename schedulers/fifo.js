@@ -45,9 +45,9 @@ function mulberry32(a) {
 
 // Random scheduler that randomly assigns jobs to each CPU
 class RandomScheduler extends Scheduler {
-    constructor(name, system) {
+    constructor(name, system, seed) {
         super(name, system)
-        this.rng = new RNG(system_state.seed)
+        this.rng = new RNG(seed)
         console.log("RandomScheduler constructor")
     }
 
