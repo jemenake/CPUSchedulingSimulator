@@ -368,6 +368,27 @@ function computeScheduleWith(system, system_state, scheduler) {
             console.log("Assignment = " + JSON.stringify(job))
         })
 
+
+
+        // Trace update
+        trace.trace_object_list.push(
+            new TraceObject(
+            system_state.getRunningJobs(system_state.cycle).map(job => job.clone()),  // Live Jobs
+            system_state.getWaitingJobs().map(job => job.clone()),  // Waiting Jobs
+            schedule.queues.map((list) => // Outer list of queues
+                list.map((job) => list.length > 0 ? job.clone() : []) // Inner list of queues
+                ),               
+            schedule.assignments.reduce((list, job) => job != null ? list.concat(job.clone()) : list.concat(null), [])// CPU assigments
+            )
+        )             
+        
+        // Constant Trace Values
+        trace.queue_names = schedule.queue_names
+        trace.system = system
+        trace.scheduler_name = scheduler.name
+
+        // Decrementing values
+
         // We need to process the waiting jobs, first! Otherwise, a job with "c1" that gets
         // computation will get its last computation done, and _then_ get a cycle of wait
         // reduced
@@ -406,24 +427,6 @@ function computeScheduleWith(system, system_state, scheduler) {
                 running_job.waiting_time += 1
             }
         })
-
-        // Trace update
-        trace.trace_object_list.push(
-            new TraceObject(
-            system_state.getRunningJobs(system_state.cycle).map(job => job.clone()),  // Live Jobs
-            system_state.getWaitingJobs().map(job => job.clone()),  // Waiting Jobs
-            schedule.queues.map((list) => // Outer list of queues
-                list.map((job) => list.length > 0 ? job.clone() : []) // Inner list of queues
-                ),               
-            schedule.assignments.reduce((list, job) => job != null ? list.concat(job.clone()) : list.concat(null), [])// CPU assigments
-            )
-        )             
-        
-    
-        // Constant Trace Values
-        trace.queue_names = schedule.queue_names
-        trace.system = system
-        trace.scheduler_name = scheduler.name
 
         // Incriment cycle count
         system_state.cycle += 1
