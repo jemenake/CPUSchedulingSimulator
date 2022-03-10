@@ -2,7 +2,15 @@ class Scheduler {
     constructor(name, system) {
         console.log("Superclass initializing for " + name)
         this.name = name
+        this.setSystem(system)
+    }
+
+    setSystem(system) {
         this.system = system
+        this.updateQueues()
+    }
+
+    updateQueues() {
         this.queues = [[]]
         this.queue_names = [["Queue 1"]]
     }
@@ -159,13 +167,16 @@ class RRScheduler extends FIFOScheduler {
 class MultiFIFOScheduler extends FIFOScheduler {
     constructor(name, system) {
         super(name, system)
+        console.log("MultiFIFOScheduler constructor")
+    }
+
+    updateQueues() {
         this.queues = []
         this.queue_names = []
         for(let i = 0; i < this.system.cpus; i++) {
-            this.queue_names.push("CPU" + i + " Queue")
             this.queues.push([])
+            this.queue_names.push("CPU" + i + " Queue")
         }
-        console.log("MultiFIFOScheduler constructor")
     }
 
     schedule(system_state) {
