@@ -317,8 +317,7 @@ function createJob(job_number, seed) {
 // Creates a list of Jobs
 function createJobList(seed) {
     // Pick a number between MIN_JOBS and MAX_JOBS
-    let val = mulberry32(seed)
-    let num_jobs = MIN_JOBS + Math.floor(val * (MAX_JOBS - MIN_JOBS))
+    let num_jobs = MIN_JOBS + Math.floor(mulberry32(seed) * (MAX_JOBS - MIN_JOBS))
     var jobs = []
     for (i=0; i<num_jobs; i++) {
         jobs.push(createJob(i, seed+i))
