@@ -222,14 +222,17 @@ class MultiFIFOScheduler extends FIFOScheduler {
         super.logAvailableJobs(available_jobs)
         var prev_jobs = this.getPrevJobsMulti(available_jobs)
 
-        if (prev_jobs[0].length == 0) {
-            var cur_jobs = [available_jobs]
-            this.queues[0] = cur_jobs[0]
+        // If there are no previous jobs in queue then current jobs are available jobs, otherwise need to combine previous and currently available jobs first
+        var cur_jobs = null
+        if (prev_jobs.flat().length == 0) {
+            cur_jobs = this.splitQueue(available_jobs)
         } else {
-            var cur_jobs = this.getCurrentJobsMulti(prev_jobs, available_jobs)
-            for (let i = 0; i < cur_jobs.length; i++) {
-                this.queues[i] = [...cur_jobs[i]]
-            }
+            cur_jobs = this.getCurrentJobsMulti(prev_jobs, available_jobs)
+        }
+
+        // Update queues
+        for (let i = 0; i < cur_jobs.length; i++) {
+            this.queues[i] = [...cur_jobs[i]]
         }
 
         var assignments = super.assignCPUJobs(this.flattenByCol(cur_jobs), "fifo")
@@ -254,6 +257,22 @@ class MultiFIFOScheduler extends FIFOScheduler {
             }
         }
         return prev_jobs
+    }
+
+    // Splits a single list into multiple based on number of CPUs
+    splitQueue(available_jobs) {
+        var cur_jobs = Array.from(Array(this.system.cpus), () => [])
+        let cpu_idx = 0
+
+        // Split available jobs among cpus
+        for (let i = 0; i < available_jobs.length; i++) {
+            cur_jobs[cpu_idx].push(available_jobs[i])
+            cpu_idx++
+            if (cpu_idx >= cur_jobs.length) {
+                cpu_idx = 0
+            }
+        }
+        return cur_jobs
     }
 
     // Returns an updated list of current jobs by adding on new jobs to previous
