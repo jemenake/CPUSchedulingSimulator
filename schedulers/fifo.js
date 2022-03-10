@@ -47,7 +47,7 @@ class RandomScheduler extends Scheduler {
         })
     }
 
-    assignCPUJobs(available_jobs, method) {
+    assignCPUJobs(available_jobs, method, seed) {
         var assignments = Array(this.system.cpus).fill(null) // Start with an array of nulls for each CPU
         // As long as there are available jobs to assign to a CPU and there are CPU's to assign _to_...
         while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
