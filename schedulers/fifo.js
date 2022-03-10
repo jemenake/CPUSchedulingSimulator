@@ -24,6 +24,7 @@ class RandomScheduler extends Scheduler {
         this.logAvailableJobs(available_jobs)
         this.queues[0] = [...available_jobs] // Queue order doesn't matter so just assign it to live jobs
         let assignments = this.assignCPUJobs(available_jobs, "random")
+        console.log("QUEUES: " + JSON.stringify(this.queues))
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
