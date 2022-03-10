@@ -238,6 +238,9 @@ let systems = [
 
 	function systemChanged() {
 		buildUICpuColumn(0)
+		// Notify schedulers that the system has changed (as some may need to change their queues)
+		schedulers.forEach((scheduler) => scheduler.setSystem())
+		// Now, rebuild the queues column for each scheduler's UI, in case their queues changed
 	}
 
 	////////////////////////////////////////////////////////////////
