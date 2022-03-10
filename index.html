@@ -90,15 +90,16 @@ CPU Scheduler Simulator
 <div class="row" style="text-align:center">
 	<div class="col">
 		<input type="button" class="presim" value="Run" style="border-radius: 6px;" onclick="runSimulation();">
+		<div id="#time_slice">Time Slice: </div>
 	</div>
 </div>
 
 <div class="row" style="text-align:center">
 	<div class="col-md-12">
 		<input type="button" class="postsim" id="rev_all" value="|<<" style="border-radius: 6px;" onclick="revAll();">
-		<input type="button" class="postsim" id="rev_one" value="|<" style="border-radius: 6px;" onclick="revOne();">
-		<input type="button" class="postsim" id="fwd_one" value=">|" style="border-radius: 6px;" onclick="fwdOne();">
-		<input type="button" class="postsim" id="fwd_all" value=">>|" style="border-radius: 6px;" onclick="fwdAll();createSchedulerUI();">
+		<input type="button" class="postsim" id="rev_one" value="|<" style="border-radius: 6px;" onclick="adjustTimeSlice(-1);">
+		<input type="button" class="postsim" id="fwd_one" value=">|" style="border-radius: 6px;" onclick="adjustTimeSlice(1);">
+		<input type="button" class="postsim" id="fwd_all" value=">>|" style="border-radius: 6px;" onclick="fwdAll();">
 	</div>
 </div>
 
@@ -111,12 +112,12 @@ CPU Scheduler Simulator
 			<select id="#scheduler_0_selector" name="scheduler_0" class="presim"></select>
 			<div class="row border">
 				<!-- Queues -->
-				<div class="col-10 border">
+				<div class="col-10 border" id="#scheduler_0_queues">
 					Queues
-					<div class="row border" id="#scheduler_0_queues">
+					<div class="row border">
 						<div class="col-1 border">Pri0</div>
 						<div class="col-11 border">
-							<div class="row">
+							<div class="row" id="#scheduler_0_queue_0">
 								<div class="col"></div><!-- consumes extra space to push things right -->
 								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P12</div>
 								<div class="col-1" style="border: 2px solid gray; border-radius: 4px;">P23</div>
@@ -127,14 +128,16 @@ CPU Scheduler Simulator
 							</div>
 						</div>
 					</div>
+
 					<div class="row border">
-						<div class="col-1 border">Pri1</div>
+						<div class="col-1 border">WAIT</div>
 						<div class="col-11 border">
-							<div class="row">
+							<div class="row" id="#scheduler_0_queue_1" style="color: lightgray;">
 								<div class="col"></div><!-- consumes extra space to push things right -->
-								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P31</div>
-								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P3</div>
-								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P28</div>	
+								<div class="col-1 border">P51</div>
+								<div class="col-1 border">P1</div>
+								<div class="col-1 border">P38</div>	
+								<div class="col-1 border">P18</div>	
 							</div>
 						</div>
 					</div>
@@ -169,7 +172,17 @@ CPU Scheduler Simulator
 				</div>
 			</div>
 			<div class="row" style="border: 2px solid gray; border-radius: 10px">
-				Statistics
+				<div class="col">
+					<div class="row">
+						<div class="col">
+							Statistics
+						</div>
+					</div>
+					<div class="row">
+						<div class="col-6">So Far</div>
+						<div class="col-6">Entire Run</div>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -184,76 +197,72 @@ CPU Scheduler Simulator
 		</div>
 	</div>
 
-	<br/><br/><br/><br/>
-	<br/><br/><br/><br/>
-	<br/><br/><br/><br/>
-	<br/><br/><br/><br/>
-	<br/><br/><br/><br/>
 
-	<div class="row" style="text-align:center; border: 2px solid gray; border-radius: 25px">
-		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
 
-			Airspeed<br>
-			<span id="#airspeed">N/A</span>
-		</div>
-		<div class="col-md-2" style="border: 2px solid gray; border-radius: 25px">
-			Heading<br>
-			<span id="#aircraftheading">N/A</span><br>
-		</div>
-	</div>
-	<div class="row" style="text-align:center">
-		<div class="col-md-3" style="border: 2px solid gray; border-radius: 25px">
-			Ground Speed<br>
-			<span id="#groundspeed">N/A</span>
-		</div>
-		<div class="col-md-3" style="border: 2px solid gray; border-radius: 25px">
-			Ground Track<br>
-			<span id="#groundtrack">N/A</span><br>
-		</div>
-		<div class="col-md-3" style="border: 2px solid gray; border-radius: 25px">
-			Heading Correction
-				<span id="#headingcorrection">N/A</span>
-		</div>
-	</div>
-</div>
-
-<div style="font-family: sans-serif; font-size: 20;">
-</div>
 <script>
 
-
-	let systems = [ 
+let systems = [ 
 		new System("1-CPU System", 1),
 		new System("2-CPU System", 2),
 		new System("4-CPU System", 4),
 	]
 
-	let schedulers = [
-		new RandomScheduler("Random Scheduler", systems[0]),
-		new FIFOScheduler("FIFO Scheduler", systems[0]),
-		new RRScheduler("Round Robin Scheduler", systems[0], 1),
-	]
+	// let schedulers = [
+	// 	new RandomScheduler("Random Scheduler", systems[0]),
+	// 	new FIFOScheduler("FIFO Scheduler", systems[0]),
+	// 	new RRScheduler("Round Robin Scheduler", systems[0]),
+	// ]
+
+	var time_slice = 0
+	var schedulers = []
+	var traces = [] // Here is where we'll store the traces from the schedulers
+	var runtimes = [] // How long each scheduler took to complete everything
+	var max_runtime // The longest of the runtimes
 
 	resetSimulation();
 	populateSystemSelector();
 	populateSchedulerSelector(0);
-	populateCPUsColumn(0)
+	buildUICpuColumn(0)
 
-	// Per process
-	// Time waiting for CPU
-	// Turnaround time (total real time)
-	// Response time (startup latency)
+	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem()))
+	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
+	addScheduler(new RRScheduler("Round Robin Scheduler", getSelectedSystem()))
 
-	// System
-	// CPU utilization
-	// Averages of the above
-	// Useful extrema (min/max) of the above
-
-	function systemChanged() {
-		populateCPUsColumn(0)
+	function addScheduler(scheduler) {
+		appendSchedulerUI(scheduler)
+		schedulers.push(scheduler)
 	}
 
-	function createProcessBox(text) {
+	function systemChanged() {
+		buildUICpuColumn(0)
+	}
+
+	////////////////////////////////////////////////////////////////
+	// Viewer control (fwd/rev)
+	////////////////////////////////////////////////////////////////
+	function adjustTimeSlice(offset) {
+		console.log("Adjusting time slice by " + offset)
+		time_slice += offset
+		if (time_slice < 0) { time_slice = 0 }
+		if (time_slice > max_runtime) { time_slice = max_runtime }
+		console.log("time_slice is now " + time_slice)
+		console.log("Scheduler[0]'s trace for this cycle is now : " + JSON.stringify(traces[0].trace_object_list[time_slice]))
+		updateUI()
+	}
+
+	function updateUI() {
+		updateUITimeSlice()
+		updateUISchedulerQueues(0)
+		updateUISchedulerCpus(0)
+	}
+
+	function updateUITimeSlice() {
+		document.getElementById("#time_slice").innerHTML = "Time Slice : " + time_slice
+	}
+
+
+
+	function getProcessBox(text) {
 		var new_element = document.createElement("div")
 		new_element.className = "border"
 		new_element.style = "min-height: 30px;"
@@ -262,11 +271,12 @@ CPU Scheduler Simulator
 	}
 
 	function populateSystemSelector() {
-		var selectBox = document.getElementById("#system_type_selector")
-		// Clear existing box
-		while(selectBox.firstChild) {
-			selectBox.removeChild(selectBox.firstChild)
-		}
+		var selectBox = getAndEmptyElement("#system_type_selector")
+		// var selectBox = document.getElementById("#system_type_selector")
+		// // Clear existing box
+		// while(selectBox.firstChild) {
+		// 	selectBox.removeChild(selectBox.firstChild)
+		// }
 		for(i=0; i<systems.length; i++) {
 			var new_option = document.createElement("option")
 			new_option.value = i
@@ -293,13 +303,81 @@ CPU Scheduler Simulator
 		selectBox.selectedIndex = 0
 	}
 
+	////////////////////////////////////////////////////////////////
+	// Name generators
+	////////////////////////////////////////////////////////////////
 	function getSchedulerID(scheduler_num) { return `#scheduler_${scheduler_num}` }
-	function getSchedulerCPUsID(scheduler_num, cpu_num) { return `#scheduler_${scheduler_num}_cpu_${cpu_num}` }
+	function getSchedulerCpuID(scheduler_num, cpu_num) { return `#scheduler_${scheduler_num}_cpu_${cpu_num}` }
+	function getSchedulerQueueID(scheduler_num, queue_num) { return `#scheduler_${scheduler_num}_queue_${queue_num}` }
 	
+	////////////////////////////////////////////////////////////////
+	// UI Update
+	////////////////////////////////////////////////////////////////
+	function getAndEmptyElement(element_id) {
+		var element = document.getElementById(element_id)
+		while(element.firstChild) {
+			element.removeChild(element.firstChild)
+		}
+		return element
+	}
 
+	function updateUISchedulerQueue(element_id, processes) {
+		console.log("We would update element " + element_id + " with " + processes.length + " processes")
+		let element = getAndEmptyElement(element_id)
+		var column_pad = document.createElement("div")
+		column_pad.className = "col"
+		element.appendChild(column_pad)
+		// We have to reverse the list because the "front" of the queue is on the right
+		console.log("processes = " + JSON.stringify(processes))
+		processes.forEach((process) => {
+			console.log("  process = " + JSON.stringify(process))
+			let process_element = document.createElement("div")
+			process_element.className = "col-1 border"
+			process_element.innerHTML = "P" + process.job_number
+			element.appendChild(process_element)
+		})
+	}
 
+	function updateUISchedulerQueues(scheduler_num) {
+		// Update all of the run queues
+		for(queue_num=0; queue_num<schedulers[scheduler_num].queue_names.length; queue_num++) {
+			console.log("trace queue for scheduler " + scheduler_num + " queues" + " are " + JSON.stringify(traces[scheduler_num].trace_object_list[time_slice].queues))
+			updateUISchedulerQueue(
+				getSchedulerQueueID(scheduler_num, queue_num),
+				traces[scheduler_num].trace_object_list[time_slice].queues[queue_num]
+			)
+		}
+		// Update the waiting list (which is numbered the next integer after the last run queue)
+		updateUISchedulerQueue(
+				getSchedulerQueueID(scheduler_num, schedulers[scheduler_num].queue_names.length),
+				traces[scheduler_num].trace_object_list[time_slice].waiting_jobs
+		)
+	}
 
-	function populateCPUsColumn(scheduler_num) {
+	function updateUISchedulerCpu(element_id, process) {
+		let element = getAndEmptyElement(element_id)
+		element.appendChild(document.createTextNode("CPU0"))
+		console.log("  process = " + JSON.stringify(process))
+		let process_element = document.createElement("div")
+		process_element.className = "border"
+		if (process == null) {
+			process_element.innerHTML = "IDLE"
+		} else {
+			process_element.innerHTML = "P" + process.job_number
+		}
+		element.appendChild(process_element)
+	}
+
+	function updateUISchedulerCpus(scheduler_num) {
+		for (cpu_num=0; cpu_num<getSelectedSystem().cpus; cpu_num++) {
+			updateUISchedulerCpu(
+				getSchedulerCpuID(scheduler_num, cpu_num),
+				traces[scheduler_num].trace_object_list[time_slice].assignments[cpu_num]
+			)
+		}
+	}
+
+	function buildUICpuColumn(scheduler_num) {
 		let id = `#scheduler_${scheduler_num}_cpus`
 		console.log("ID = " + id)
 		var cpuBox = document.getElementById(id)
@@ -319,7 +397,7 @@ CPU Scheduler Simulator
 			new_element.className = "col border"
 			new_element.id = `#scheduler_${scheduler_num}_cpu_${i}`
 			new_element.appendChild(document.createTextNode("CPU" + i))
-			new_element.appendChild(createProcessBox(""))
+			new_element.appendChild(getProcessBox("FIXTHIS"))
 
 			row_element.appendChild(new_element)
 
@@ -334,7 +412,7 @@ CPU Scheduler Simulator
 		return systems[systemTypeSelector.selectedIndex]
 	}
 
-	function createSchedulerUI() {
+	function appendSchedulerUI(scheduler) {
 		var insertPoint = document.getElementById("INSERT_MARKER")
 		var newElement = document.createElement("div")
 		newElement.className = "row"
@@ -344,6 +422,9 @@ CPU Scheduler Simulator
 	}
 
 
+	////////////////////////////////////////////////////////////////
+	// Simulation Reset/Run
+	////////////////////////////////////////////////////////////////
 	function resetSimulation() {
 		// Disable any post-simulation UI elements and enable any pre-simulation ones
 		var elements = document.querySelectorAll('.presim')
@@ -361,125 +442,23 @@ CPU Scheduler Simulator
 		elements.forEach((element) => element.disabled = false)
 		// TOOD: Actually call the simulator with parameters from the UI
 		console.log("Running simulation")
-		let traces = simulator(getSelectedSystem(), schedulers, 55)
+		traces = simulator(getSelectedSystem(), schedulers, 55)
+		max_runtime = 0
+		for(i=0; i<traces.length; i++) {
+			runtimes[i] = traces[i].trace_object_list.length
+			// Find the largest runtime
+			max_runtime = runtimes[i] > max_runtime ? runtimes[i] : max_runtime
+		}
+
 		console.log("There are " + (traces.length) + " traces")
-		console.log("=============================")
-		traces.forEach(trace => console.log(JSON.stringify(trace)))
-
-	}
-
-	function revAll() {
-
-	}
-
-	function revOne() {
-
-	}
-
-	function fwdOne() {
-
-	}
-
-	function fwdAll() {
-
-	}
-
-	function draw() {
-
-
-
-		// var p_angle = (plane_heading - 90) * Math.PI / 180;
-		// var w_angle = (wind_heading - 90)* Math.PI / 180;
-		// var groundspeed_x = plane_velocity * Math.cos(p_angle) + wind_velocity * Math.cos(w_angle);
-		// var groundspeed_y = plane_velocity * Math.sin(p_angle) + wind_velocity * Math.sin(w_angle);
-
-		// document.getElementById("#airspeed").innerHTML = plane_velocity;
-		// document.getElementById("#windspeed").innerHTML = wind_velocity;
-
-	}
-
-
-
-
-
-
-
-	// Shamelessly stolen from https://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
-	/**
-	 * Draws a rounded rectangle using the current state of the canvas.
-	 * If you omit the last three params, it will draw a rectangle
-	 * outline with a 5 pixel border radius
-	 * @param {CanvasRenderingContext2D} ctx
-	 * @param {Number} x The top left x coordinate
-	 * @param {Number} y The top left y coordinate
-	 * @param {Number} width The width of the rectangle
-	 * @param {Number} height The height of the rectangle
-	 * @param {Number} [radius = 5] The corner radius; It can also be an object
-	 *				 to specify different radii for corners
-	 * @param {Number} [radius.tl = 0] Top left
-	 * @param {Number} [radius.tr = 0] Top right
-	 * @param {Number} [radius.br = 0] Bottom right
-	 * @param {Number} [radius.bl = 0] Bottom left
-	 * @param {Boolean} [fill = false] Whether to fill the rectangle.
-	 * @param {Boolean} [stroke = true] Whether to stroke the rectangle.
-	 */
-	function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
-		if (typeof stroke == 'undefined') {
-			stroke = true;
+		for (i=0; i<traces.length; i++) {
+			console.log("Scheduler " + i + " needed " + traces[i].trace_object_list.length + " cycles")
 		}
-		if (typeof radius === 'undefined') {
-			radius = 5;
-		}
-		if (typeof radius === 'number') {
-			radius = {tl: radius, tr: radius, br: radius, bl: radius};
-		} else {
-			var defaultRadius = {tl: 0, tr: 0, br: 0, bl: 0};
-			for (var side in defaultRadius) {
-				radius[side] = radius[side] || defaultRadius[side];
-			}
-		}
-		ctx.beginPath();
-		ctx.moveTo(x + radius.tl, y);
-		ctx.lineTo(x + width - radius.tr, y);
-		ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
-		ctx.lineTo(x + width, y + height - radius.br);
-		ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
-		ctx.lineTo(x + radius.bl, y + height);
-		ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
-		ctx.lineTo(x, y + radius.tl);
-		ctx.quadraticCurveTo(x, y, x + radius.tl, y);
-		ctx.closePath();
-		if (fill) {
-			ctx.fill();
-		}
-		if (stroke) {
-			ctx.stroke();
-		}
+		time_slice = 0
+		updateUI()
 
 	}
 
-
-	document.addEventListener('keydown', function(event) {
-		if(event.keyCode == 37) {
-			adjustPlaneHeading(-heading_increment);
-		} else if(event.keyCode == 39) {
-			adjustPlaneHeading(heading_increment)
-		} else if(event.keyCode == 90) { // "z"
-			adjustWindHeading(-heading_increment);
-		} else if(event.keyCode == 88) { // "x"
-			adjustWindHeading(heading_increment);
-		} else if(event.keyCode == 81) { // "q"
-			adjustWindspeed(velocity_increment);
-		} else if(event.keyCode == 65) { // "a"
-			adjustWindspeed(-velocity_increment);
-		}
-	});
-
-	function wheelMoved(e) {
-		console.debug("Moved " + e.deltaY);
-	}
-
-	draw();
 
 
 </script>
