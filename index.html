@@ -84,7 +84,8 @@ CPU Scheduler Simulator
 
 <div class="row" style="text-align:center">
 	<div class="col-6">
-		<input type="range" class="presim" id="max_jobs_slider" min="1" max="100" onchange="document.getElementById('#max_jobs_label').innerHTML = this.value;">Max Jobs:<span id="#max_jobs_label"></span>
+		<input type="range" class="presim" id="max_jobs_slider" min="1" max="100" onchange="document.getElementById('#max_jobs_label').innerHTML = this.value;">Processes:<span id="#max_jobs_label"></span><br/>
+		<input type="range" class="presim" id="max_jobs_slider" min="1" max="10" onchange="document.getElementById('#load_label').innerHTML = this.value;">Load:<span id="#load_label"></span>
 	</div>
 	<div class="col-6">
 		System Type:
@@ -197,11 +198,12 @@ CPU Scheduler Simulator
 	populateSystemSelector();
 
 
-	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed))
+
 	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
-	addScheduler(new RRScheduler("Round Robin Scheduler", getSelectedSystem()))
+	addScheduler(new RRScheduler("Round Robin Scheduler", getSelectedSystem(), 3))
+	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed))
 	addScheduler(new MultiFIFOScheduler("MultiFIFOScheduler Scheduler", getSelectedSystem()))
-	//addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem()))
+	addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem()))
 
 	function addScheduler(scheduler) {
 		schedulers.push(scheduler)
@@ -234,7 +236,7 @@ CPU Scheduler Simulator
 	}
 
 	function updateUI() {
-		console.log("schedulers has " + schedulers.length + " items: " + JSON.stringify(schedulers))
+		// console.log("schedulers has " + schedulers.length + " items: " + JSON.stringify(schedulers))
 		updateUITimeSlice()
 		// Update each scheduler with the details of this time_slice
 		for(scheduler_num=0; scheduler_num<schedulers.length; scheduler_num++) {
@@ -313,20 +315,21 @@ CPU Scheduler Simulator
 	}
 
 	function updateUISchedulerQueue(element_id, processes) {
-		console.log("We would update element " + element_id + " with " + processes.length + " processes")
+		// console.log("We would update element " + element_id + " with " + processes.length + " processes")
 		let element = getAndEmptyElement(element_id)
 		var column_pad = document.createElement("div")
 		column_pad.className = "col"
 		element.appendChild(column_pad)
 		// We have to reverse the list because the "front" of the queue is on the right
 		console.log("processes = " + JSON.stringify(processes))
-		processes.forEach((process) => {
+		for(process_num=processes.length-1; process_num >= 0; process_num--) {
+			let process = processes[process_num]
 			console.log("  process = " + JSON.stringify(process))
 			let process_element = document.createElement("div")
 			process_element.className = "col-1 border"
 			process_element.innerHTML = "P" + process.job_number
 			element.appendChild(process_element)
-		})
+		}
 	}
 
 	function updateUISchedulerQueues(scheduler_num) {
@@ -435,7 +438,7 @@ CPU Scheduler Simulator
 
 	function getSelectedSystem() {
 		let systemTypeSelector = document.getElementById("#system_type_selector")
-		console.log("System Type Selector index = " + systemTypeSelector.selectedIndex)
+		// console.log("System Type Selector index = " + systemTypeSelector.selectedIndex)
 		return systems[systemTypeSelector.selectedIndex]
 	}
 
@@ -504,10 +507,19 @@ CPU Scheduler Simulator
 		row_col_row_current.className = "col-6"
 		row_col_row_current.id = getSchedulerCurrentStatsID(scheduler_num)
 		row_col_row_current.innerText = "Current"
+		var placeholder = document.createElement("div")
+		placeholder.className = "border"
+		placeholder.innerText = "Imagine some stats here"
+		row_col_row_current.appendChild(placeholder)
+
 		let row_col_row_ending = document.createElement("div")
 		row_col_row_ending.className = "col-6"
 		row_col_row_ending.id = getSchedulerEndingStatsID(scheduler_num)
 		row_col_row_ending.innerText = "Ending"
+		placeholder = document.createElement("div")
+		placeholder.className = "border"
+		placeholder.innerText = "Imagine some stats here"
+		row_col_row_ending.appendChild(placeholder)
 
 		row_col_row.appendChild(row_col_row_current)
 		row_col_row.appendChild(row_col_row_ending)
