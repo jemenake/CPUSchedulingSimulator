@@ -282,7 +282,7 @@ let MIN_COMPUTE_TIME = 1
 let MAX_COMPUTE_TIME = 10 // Maximum time any job needs to compute before needing to wait or finish
 let MAX_WAIT_CYCLES = 4 // Maximum _number_ of times any job needs to wait for something like
 let MIN_PRIORITY = 0
-let MAX_PRIORITY = 3
+let MAX_PRIORITY = 1
 let MAX_ARRIVAL_TIME = 40
 // We need some way of stopping if we have an infinite loop, for some reason. So, figure out the
 // longest a process can need to run (_not_ counting time waiting in the run queue) and add that
