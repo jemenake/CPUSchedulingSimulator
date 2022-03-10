@@ -17,7 +17,7 @@
 
 <script src="simulator/sim.js"></script>
 <script src="schedulers/fifo.js"></script>
-<script src="gui/gui.js"></script>
+
 
 <header class="page-header header container-fluid" style="text-align:center">
 CPU Scheduler Simulator
@@ -59,6 +59,10 @@ CPU Scheduler Simulator
 	.schedulertitle {
 		color: white;
 		background-color: gray;
+	}
+	.schedulersubtitle {
+		color: black;
+		background-color: lightgray;
 	}
 	/* .queues {
 		border: 2px solid gray;
@@ -104,21 +108,18 @@ CPU Scheduler Simulator
 </div>
 
 
-<div class="container">
-	<!-- Scheduler Box -->
-	<div class="row scheduler">
-		<!-- Scheduler Box -->
+<div class="container" id="#schedulers">
+	<!-- <div class="row scheduler">
 		<div class="container">
-			<select id="#scheduler_0_selector" name="scheduler_0" class="presim"></select>
+			<div class="schedulertitle">Random Scheduler</div>
 			<div class="row border">
-				<!-- Queues -->
-				<div class="col-10 border" id="#scheduler_0_queues">
-					Queues
+				<div class="col-10 border" id="#scheduler_9_queues">
+					<div class="schedulersubtitle">Queues</div>
 					<div class="row border">
 						<div class="col-1 border">Pri0</div>
 						<div class="col-11 border">
-							<div class="row" id="#scheduler_0_queue_0">
-								<div class="col"></div><!-- consumes extra space to push things right -->
+							<div class="row" id="#scheduler_9_queue_0">
+								<div class="col"></div>
 								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P12</div>
 								<div class="col-1" style="border: 2px solid gray; border-radius: 4px;">P23</div>
 								<div class="col-1" style="border: 2px solid orange; border-radius: 4px;">P7</div>
@@ -132,8 +133,8 @@ CPU Scheduler Simulator
 					<div class="row border">
 						<div class="col-1 border">WAIT</div>
 						<div class="col-11 border">
-							<div class="row" id="#scheduler_0_queue_1" style="color: lightgray;">
-								<div class="col"></div><!-- consumes extra space to push things right -->
+							<div class="row" id="#scheduler_9_queue_1" style="color: lightgray;">
+								<div class="col"></div>
 								<div class="col-1 border">P51</div>
 								<div class="col-1 border">P1</div>
 								<div class="col-1 border">P38</div>	
@@ -142,66 +143,37 @@ CPU Scheduler Simulator
 						</div>
 					</div>
 				</div>
-				<!-- CPUs -->
-				<div class="col-md-2 border" id="#scheduler_0_cpus">
-					CPUs
+				<div class="col-md-2 border" id="#scheduler_9_cpus">
+					<div class="schedulersubtitle">CPUs</div>
 					<div class="row">
-						<div class="col border" id="#scheduler_0_cpu_0">
+						<div class="col border" id="#scheduler_9_cpu_0">
 							CPU0<br/>
 							<div style="border: 2px solid red; border-radius: 10px; text-align: center;">P22</div>
 						</div>
 					</div>
-					<div class="row">
-						<div class="col border" id="#scheduler_0_cpu_1">
-							CPU1
-							<div style="border: 2px solid blue; border-radius: 10px; text-align: center;">P19</div>
-						</div>
-					</div>
-					<div class="row">
-						<div class="col border" id="#scheduler_0_cpu_2">
-							CPU2
-							<div style="border: 2px solid green; border-radius: 10px; text-align: center;">P15</div>
-						</div>
-					</div>
-					<div class="row">
-						<div class="col border" id="#scheduler_0_cpu_3">
-							CPU3
-							<div style="border: 2px solid orange; border-radius: 10px; text-align: center;">P7</div>
-						</div>
-					</div>
+
 				</div>
 			</div>
 			<div class="row" style="border: 2px solid gray; border-radius: 10px">
 				<div class="col">
 					<div class="row">
-						<div class="col">
+						<div class="schedulersubtitle col">
 							Statistics
 						</div>
 					</div>
 					<div class="row">
-						<div class="col-6">So Far</div>
-						<div class="col-6">Entire Run</div>
+						<div id="#scheduler_0_currentstats" class="col-6">So Far</div>
+						<div id="#scheduler_0_endingstats" class="col-6">Entire Run</div>
 					</div>
 				</div>
 			</div>
 		</div>
-	</div>
-
-	<div id="INSERT_MARKER">
-		<div class="row">
-			<div class="col">
-				<div style="border: 2px solid gray; border-radius: 10px">
-					Add another scheduler
-				</div>
-			</div>
-		</div>
-	</div>
-
-
+	</div> -->
+</div>
 
 <script>
 
-let systems = [ 
+	let systems = [ 
 		new System("1-CPU System", 1),
 		new System("2-CPU System", 2),
 		new System("4-CPU System", 4),
@@ -215,7 +187,7 @@ let systems = [
 	// ]
 
 	var time_slice = 0
-	var schedulers = []
+	let schedulers = []
 	var traces = [] // Here is where we'll store the traces from the schedulers
 	var runtimes = [] // How long each scheduler took to complete everything
 	var max_runtime // The longest of the runtimes
@@ -223,8 +195,7 @@ let systems = [
 
 	resetSimulation();
 	populateSystemSelector();
-	populateSchedulerSelector(0);
-	buildUICpuColumn(0)
+
 
 	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed))
 	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
@@ -233,15 +204,20 @@ let systems = [
 	//addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem()))
 
 	function addScheduler(scheduler) {
-		appendSchedulerUI(scheduler)
 		schedulers.push(scheduler)
+		appendSchedulerUI(scheduler, schedulers.length-1)
 	}
 
 	function systemChanged() {
-		buildUICpuColumn(0)
 		// Notify schedulers that the system has changed (as some may need to change their queues)
-		schedulers.forEach((scheduler) => scheduler.setSystem(getSelectedSystem()))
+		for(scheduler_num=0; scheduler_num<schedulers.length; scheduler_num++) {
+			rebuildUICpuColumn(scheduler_num)
+			schedulers[scheduler_num].setSystem(getSelectedSystem())
+			rebuildUIQueueColumn(scheduler_num)
+
+		}
 		// Now, rebuild the queues column for each scheduler's UI, in case their queues changed
+		// TODO
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -258,16 +234,18 @@ let systems = [
 	}
 
 	function updateUI() {
+		console.log("schedulers has " + schedulers.length + " items: " + JSON.stringify(schedulers))
 		updateUITimeSlice()
-		updateUISchedulerQueues(0)
-		updateUISchedulerCpus(0)
+		// Update each scheduler with the details of this time_slice
+		for(scheduler_num=0; scheduler_num<schedulers.length; scheduler_num++) {
+			updateUISchedulerQueues(scheduler_num)
+			updateUISchedulerCpus(scheduler_num)
+		}
 	}
 
 	function updateUITimeSlice() {
 		document.getElementById("#time_slice").innerHTML = "Time Slice : " + time_slice
 	}
-
-
 
 	function getProcessBox(text) {
 		var new_element = document.createElement("div")
@@ -293,35 +271,41 @@ let systems = [
 		selectBox.selectedIndex = 0
 	}
 
-	function populateSchedulerSelector(scheduler_num) {
-		let id = `#scheduler_${scheduler_num}_selector`
-		console.log("ID = " + id)
-		var selectBox = document.getElementById(id)
-		// Clear existing box
-		while(selectBox.firstChild) {
-			selectBox.removeChild(selectBox.firstChild)
-		}
-		for(i=0; i<schedulers.length; i++) {
-			var new_option = document.createElement("option")
-			new_option.value = i
-			new_option.text = schedulers[i].name
-			selectBox.appendChild(new_option)
-		}
-		selectBox.selectedIndex = 0
-	}
+	// function populateSchedulerSelector(scheduler_num) {
+	// 	let id = `#scheduler_${scheduler_num}_selector`
+	// 	console.log("ID = " + id)
+	// 	var selectBox = document.getElementById(id)
+	// 	// Clear existing box
+	// 	while(selectBox.firstChild) {
+	// 		selectBox.removeChild(selectBox.firstChild)
+	// 	}
+	// 	for(i=0; i<schedulers.length; i++) {
+	// 		var new_option = document.createElement("option")
+	// 		new_option.value = i
+	// 		new_option.text = schedulers[i].name
+	// 		selectBox.appendChild(new_option)
+	// 	}
+	// 	selectBox.selectedIndex = 0
+	// }
 
 	////////////////////////////////////////////////////////////////
 	// Name generators
 	////////////////////////////////////////////////////////////////
 	function getSchedulerID(scheduler_num) { return `#scheduler_${scheduler_num}` }
+	function getSchedulerCpusID(scheduler_num) { return `#scheduler_${scheduler_num}_cpus` }
 	function getSchedulerCpuID(scheduler_num, cpu_num) { return `#scheduler_${scheduler_num}_cpu_${cpu_num}` }
+	function getSchedulerQueuesID(scheduler_num) { return `#scheduler_${scheduler_num}_queues` }
 	function getSchedulerQueueID(scheduler_num, queue_num) { return `#scheduler_${scheduler_num}_queue_${queue_num}` }
-	
+	function getSchedulerCurrentStatsID(scheduler_num, queue_num) { return `#scheduler_${scheduler_num}_currentstats` }
+	function getSchedulerEndingStatsID(scheduler_num, queue_num) { return `#scheduler_${scheduler_num}_endingstats` }
+
 	////////////////////////////////////////////////////////////////
 	// UI Update
 	////////////////////////////////////////////////////////////////
 	function getAndEmptyElement(element_id) {
+		console.log("Getting and emptying element for : " + element_id);
 		var element = document.getElementById(element_id)
+		console.log("Got : " + JSON.stringify(element));
 		while(element.firstChild) {
 			element.removeChild(element.firstChild)
 		}
@@ -364,6 +348,7 @@ let systems = [
 	}
 
 	function updateUISchedulerCpu(element_id, process) {
+		console.log("updateUISchedulerCpu(" + element_id)
 		let element = getAndEmptyElement(element_id)
 		element.appendChild(document.createTextNode("CPU0"))
 		console.log("  process = " + JSON.stringify(process))
@@ -386,15 +371,14 @@ let systems = [
 		}
 	}
 
-	function buildUICpuColumn(scheduler_num) {
-		let id = `#scheduler_${scheduler_num}_cpus`
+	function rebuildUICpuColumn(scheduler_num) {
+		let id = getSchedulerCpusID(scheduler_num)
 		console.log("ID = " + id)
-		var cpuBox = document.getElementById(id)
-		// Clear existing box
-		while(cpuBox.firstChild) {
-			cpuBox.removeChild(cpuBox.firstChild)
-		}
-		cpuBox.appendChild(document.createTextNode("CPUs"))
+		let cpuBox = getAndEmptyElement(id)
+		let title_bar = document.createElement("div")
+		title_bar.className = "schedulersubtitle"
+		title_bar.innerText = "CPUs"
+		cpuBox.appendChild(title_bar)
 		let selected_system = getSelectedSystem()
 		console.log(JSON.stringify(selected_system))
 		for(i=0; i<selected_system.cpus; i++) {
@@ -406,12 +390,46 @@ let systems = [
 			new_element.className = "col border"
 			new_element.id = `#scheduler_${scheduler_num}_cpu_${i}`
 			new_element.appendChild(document.createTextNode("CPU" + i))
-			new_element.appendChild(getProcessBox("FIXTHIS"))
+			new_element.appendChild(getProcessBox("NOT RUNNING"))
 
 			row_element.appendChild(new_element)
 
 			cpuBox.appendChild(row_element)
 		}
+	}
+
+	function rebuildUIQueueColumn(scheduler_num) {
+		let id = getSchedulerQueuesID(scheduler_num)
+		console.log("ID = " + id)
+		let queuesBox = getAndEmptyElement(id)
+		let title_bar = document.createElement("div")
+		title_bar.className = "schedulersubtitle"
+		title_bar.innerText = "Queues"
+		queuesBox.appendChild(title_bar)
+
+		console.log("scheduler_num = " + scheduler_num)
+		console.log("schedulers.length = " + schedulers.length)
+		let scheduler = schedulers[scheduler_num]
+		for(queue_num=0; queue_num<scheduler.queues.length; queue_num++) {
+			queuesBox.appendChild(buildSchedulerQueue(scheduler_num, queue_num, scheduler.queue_names[queue_num]))
+		}
+		queuesBox.appendChild(buildSchedulerQueue(scheduler_num, scheduler.queues.length, "WAIT"))
+
+		// for(i=0; i<selected_system.cpus; i++) {
+		// 	console.log("Adding CPU"+i)
+		// 	var row_element = document.createElement("div")
+		// 	row_element.className = "row border"
+
+		// 	var new_element = document.createElement("div")
+		// 	new_element.className = "col border"
+		// 	new_element.id = `#scheduler_${scheduler_num}_cpu_${i}`
+		// 	new_element.appendChild(document.createTextNode("CPU" + i))
+		// 	new_element.appendChild(getProcessBox("NOT RUNNING"))
+
+		// 	row_element.appendChild(new_element)
+
+		// 	cpuBox.appendChild(row_element)
+		// }
 
 	}
 
@@ -421,13 +439,124 @@ let systems = [
 		return systems[systemTypeSelector.selectedIndex]
 	}
 
-	function appendSchedulerUI(scheduler) {
-		var insertPoint = document.getElementById("INSERT_MARKER")
-		var newElement = document.createElement("div")
-		newElement.className = "row"
-		newElement.style = "border: 2px solid yellow; border-radius: 10px; text-align: center;"
-		newElement.appendChild(document.createTextNode("This is a test"))
-		insertPoint.parentNode.insertBefore(newElement, insertPoint)
+	function buildSchedulerQueue(scheduler_num, queue_num, queue_name) {
+		let row = document.createElement("div")
+		row.className = "row border"
+		let name_col = document.createElement("div")
+		name_col.className = "col-1 border"
+		name_col.textContent = queue_name
+		let queue_col = document.createElement("div")
+		queue_col.className = "col-11 border"
+		let queue_col_row = document.createElement("div")
+		queue_col_row.className = "row"
+		queue_col_row.id = getSchedulerQueueID(scheduler_num, queue_num)
+		queue_col.appendChild(queue_col_row)
+		row.appendChild(name_col)
+		row.appendChild(queue_col)
+		return row
+	}
+
+	function buildUISchedulerQueues(scheduler, scheduler_num) {
+		var elements = []
+		let title = document.createElement("div")
+		title.className = "schedulersubtitle"
+		elements.push(title)
+		for(queue_num=0; queue_num<scheduler.queues.length; queue_num++) {
+			elements.push(buildSchedulerQueue(scheduler_num, queue_num, scheduler.queue_names[queue_num]))
+		}
+		elements.push(buildSchedulerQueue(scheduler_num, scheduler.queues.length, "WAIT"))
+		return elements
+	}
+
+	function buildUISchedulerQueuesAndCpus(scheduler, scheduler_num, system) {
+		let queues_and_cpus = document.createElement("div")
+		queues_and_cpus.className = "row border"
+		let queues = document.createElement("div")
+		queues.className = "col-10 border"
+		queues.id = getSchedulerQueuesID(scheduler_num)
+		// Build the whole queue stack
+		// buildUISchedulerQueues(scheduler, scheduler_num).forEach((element) => queues.appendChild(element))
+		let cpus = document.createElement("div")
+		cpus.className = "col-2 border"
+		cpus.id = getSchedulerCpusID(scheduler_num)
+		queues_and_cpus.appendChild(queues)
+		queues_and_cpus.appendChild(cpus)
+		return queues_and_cpus
+	}
+
+	function buildUISchedulerStatistics(scheduler_num) {
+		let row = document.createElement("div")
+		row.className = "row border"
+		let row_col = document.createElement("div")
+		row_col.className = "col"
+		// Title divs
+		let row_col_title = document.createElement("div")
+		row_col_title.className = "row"
+		let row_col_title_text = document.createElement("div")
+		row_col_title_text.className = "col schedulersubtitle"
+		row_col_title_text.innerText = "Statistics"
+		row_col_title.appendChild(row_col_title_text)
+		
+		// Row with stats columns
+		let row_col_row = document.createElement("div")
+		row_col_row.className = "row"
+		let row_col_row_current = document.createElement("div")
+		row_col_row_current.className = "col-6"
+		row_col_row_current.id = getSchedulerCurrentStatsID(scheduler_num)
+		row_col_row_current.innerText = "Current"
+		let row_col_row_ending = document.createElement("div")
+		row_col_row_ending.className = "col-6"
+		row_col_row_ending.id = getSchedulerEndingStatsID(scheduler_num)
+		row_col_row_ending.innerText = "Ending"
+
+		row_col_row.appendChild(row_col_row_current)
+		row_col_row.appendChild(row_col_row_ending)
+		
+		row_col.appendChild(row_col_title)
+		row_col.appendChild(row_col_row)
+
+		row.appendChild(row_col)
+
+		return row
+
+		// <div class="row" style="border: 2px solid gray; border-radius: 10px">
+		// 	 <div class="col">
+		// 		<div class="row">
+		// 			<div class="schedulersubtitle col">
+		// 				Statistics
+		// 			</div>
+		// 		</div>
+		// 		<div class="row">
+		// 			<div id="#scheduler_0_currentstats" class="col-6">So Far</div>
+		// 			<div id="#scheduler_0_endingstats" class="col-6">Entire Run</div>
+		// 		</div>
+		// 	</div>
+		// </div>
+	}
+
+	function appendSchedulerUI(scheduler, scheduler_num) {
+		console.log("appendSchedulerUI(" + scheduler_num + ")")
+		let scheduler_div = document.getElementById("#schedulers")
+		let scheduler_row = document.createElement("div")
+		scheduler_row.className = "row scheduler"
+		let scheduler_container = document.createElement("div")
+		scheduler_container.className = "container"
+		let scheduler_title = document.createElement("div")
+		scheduler_title.className = "schedulertitle"
+		scheduler_title.textContent = scheduler.name
+		// let queue_and_cpus = document.createElement("div")
+		// queue_and_cpus.className = "row border"
+		let queues_and_cpus = buildUISchedulerQueuesAndCpus(scheduler, scheduler_num, getSelectedSystem())
+		let statistics = buildUISchedulerStatistics(scheduler_num)
+		statistics.className = "row"
+		scheduler_container.appendChild(scheduler_title)
+		scheduler_container.appendChild(queues_and_cpus)
+		scheduler_container.appendChild(statistics)
+		scheduler_row.appendChild(scheduler_container)
+		scheduler_div.appendChild(scheduler_row)
+
+		rebuildUICpuColumn(scheduler_num)
+		rebuildUIQueueColumn(scheduler_num)
 	}
 
 
