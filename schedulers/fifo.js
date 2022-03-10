@@ -318,13 +318,17 @@ class PriorityScheduler extends FIFOScheduler {
     constructor(name, system, num_priority_levels = 2) {
         super(name, system)
         this.num_priority_levels = num_priority_levels
+        this.updateQueues()
+        console.log("PriorityScheduler constructor")
+    }
+
+    updateQueues() {
         this.queues = []
         this.queue_names = []
         for(let i = 0; i < this.num_priority_levels; i++) {
             this.queue_names.push("Pri" + i)
             this.queues.push([])
         }
-        console.log("PriorityScheduler constructor")
     }
 
     schedule(system_state) {
