@@ -13,7 +13,7 @@ class Scheduler {
 
     updateQueues() {
         this.queues = [[]]
-        this.queue_names = [["Queue 1"]]
+        this.queue_names = [["RUN"]]
     }
 
     schedule(system, system_state) {
@@ -213,7 +213,7 @@ class MultiFIFOScheduler extends FIFOScheduler {
         this.queue_names = []
         for(let i = 0; i < this.system.cpus; i++) {
             this.queues.push([])
-            this.queue_names.push("CPU" + i + " Queue")
+            this.queue_names.push("CPU" + i)
         }
     }
 
@@ -321,7 +321,7 @@ class PriorityScheduler extends FIFOScheduler {
         this.queues = []
         this.queue_names = []
         for(let i = 0; i < this.num_priority_levels; i++) {
-            this.queue_names.push("Priority Queue " + i)
+            this.queue_names.push("Pri" + i)
             this.queues.push([])
         }
         console.log("PriorityScheduler constructor")
