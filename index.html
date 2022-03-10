@@ -228,6 +228,8 @@ let systems = [
 	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem()))
 	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
 	addScheduler(new RRScheduler("Round Robin Scheduler", getSelectedSystem()))
+	addScheduler(new MultiFIFOScheduler("MultiFIFOScheduler Scheduler", getSelectedSystem()))
+	//addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem()))
 
 	function addScheduler(scheduler) {
 		appendSchedulerUI(scheduler)
