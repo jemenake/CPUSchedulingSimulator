@@ -4,6 +4,7 @@ sim_result = {
             queues: [ [1,2], [4,5,3] ],
             assignments: [ 1, 2, 4],
             processes: [ ],
+            wait_queue: [ ],
             stats: {
                 longest_wait: 0,
             }
@@ -12,11 +13,13 @@ sim_result = {
             queues: [ [2], [4,5,3] ],
             assignments: [ 3, 2, 4],
             processes: [ ],
+            wait_queue: [ ],
             stats: {
                 longest_wait: 0,
             }
         },
     ],
+    scheduler_name: "FIFO Scheduler",
     queue_names: [ "High priority", "Low Priority" ],
     stats: { // Overall
         longest_wait: 0,
