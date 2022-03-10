@@ -407,16 +407,18 @@ function computeScheduleWith(system, system_state, scheduler) {
         })
 
         // Now, give the selected processes some computation
-        schedule.assignments.forEach((job) => {
+        // schedule.assignments.forEach((job) => {
+        for (let i = 0; i < schedule.assignments.length; i++) {
+            var job = schedule.assignments[i]
             if (job == null) {
-                console.log("Got a null assignment. This isn't a bad thing. Just noting it in the logs during development")
+                console.log("CPU" + i + " Got a null assignment. This isn't a bad thing. Just noting it in the logs during development")
             } else {
                 console.log("Looks like job #" + job.job_number + " got some CPU time")
                 console.log("Before: " + JSON.stringify(job.lifecycle))
                 job.recordComputation(system_state.cycle)  // Reduce computation    
                 console.log("After : " + JSON.stringify(job.lifecycle))
             }
-        })
+        }
 
         // Add to wait time, by finding jobs that are running and not in a cpu
         system_state.getRunningJobs().forEach((running_job) => {
