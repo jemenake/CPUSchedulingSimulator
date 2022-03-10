@@ -442,7 +442,7 @@ let systems = [
 		elements.forEach((element) => element.disabled = false)
 		// TOOD: Actually call the simulator with parameters from the UI
 		console.log("Running simulation")
-		traces = simulator(getSelectedSystem(), schedulers)
+		traces = simulator(getSelectedSystem(), schedulers, 55)
 		max_runtime = 0
 		for(i=0; i<traces.length; i++) {
 			runtimes[i] = traces[i].trace_object_list.length

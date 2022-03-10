@@ -188,9 +188,10 @@ class System {
 }
 
 class SystemState {
-    constructor(jobs) {
+    constructor(jobs, seed) {
         this.jobs = jobs
         this.cycle = 0
+        this.seed = seed
         }
 
     getSystemTime() {
@@ -285,28 +286,37 @@ let MAX_ARRIVAL_TIME = 40
 // some amount) in order to account for time the process is waiting in the run queue.
 let LAST_EXPECTED_CYCLE = MAX_ARRIVAL_TIME + (MAX_COMPUTE_TIME * (1 + MAX_WAIT_CYCLES)) + (MAX_WAIT_TIME * MAX_WAIT_CYCLES)
 
-function createJob(job_number) {
-    let priority = MIN_PRIORITY + Math.floor(Math.random() * (MAX_PRIORITY - MIN_PRIORITY))
-    let arrival_time = Math.floor(Math.random() * MAX_ARRIVAL_TIME)
+// Sourced from stack overflow (https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript)
+function mulberry32(a) {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+
+function createJob(job_number, seed) {
+    let priority = MIN_PRIORITY + Math.floor(mulberry32(seed) * (MAX_PRIORITY - MIN_PRIORITY))
+    let arrival_time = Math.floor(mulberry32(seed) * MAX_ARRIVAL_TIME)
     // We _must_ have a starting computation
     var lifecycle = []
-    lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(Math.random() * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
-    let num_waits = Math.floor(Math.random() * MAX_WAIT_CYCLES)
+    lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(mulberry32(seed) * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
+    let num_waits = Math.floor(mulberry32(seed) * MAX_WAIT_CYCLES)
     for(j=0; j<num_waits; j++) {
-        lifecycle.push("w" + (MIN_WAIT_TIME + Math.floor(Math.random() * (MAX_WAIT_TIME - MIN_WAIT_TIME))))
-        lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(Math.random() * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
+        lifecycle.push("w" + (MIN_WAIT_TIME + Math.floor(mulberry32(seed) * (MAX_WAIT_TIME - MIN_WAIT_TIME))))
+        lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(mulberry32(seed) * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
     }
     console.log("Creating a job #" + job_number + " with arrival time " + arrival_time + " and priority " + priority)
     return new Job(job_number, arrival_time, priority, lifecycle)
 }
 
 // Creates a list of Jobs
-function createJobList() {
+function createJobList(seed) {
     // Pick a number between MIN_JOBS and MAX_JOBS
-    let num_jobs = MIN_JOBS + Math.floor(Math.random() * (MAX_JOBS - MIN_JOBS))
+    let val = mulberry32(seed)
+    let num_jobs = MIN_JOBS + Math.floor(val * (MAX_JOBS - MIN_JOBS))
     var jobs = []
     for (i=0; i<num_jobs; i++) {
-        jobs.push(createJob(i))
+        jobs.push(createJob(i, seed+i))
     }
     // We need to make sure that _some_ job starts at time=0 (or it makes for a boring start to the simulation)
     // so we just pick job #0
@@ -315,9 +325,9 @@ function createJobList() {
     return jobs
 }
 
-function simulator(system, schedulers) {
+function simulator(system, schedulers, seed) {
     console.log("1")
-    var starting_jobs = createJobList()
+    var starting_jobs = createJobList(seed)
 
     var overall_trace_object_list = []
 
@@ -329,7 +339,7 @@ function simulator(system, schedulers) {
         console.log("Simulating scheduler named : " + scheduler.name)
 
         var working_copy = starting_jobs.reduce((list, job) => list.concat(job.clone()), [])
-        let system_state = new SystemState(working_copy)
+        let system_state = new SystemState(working_copy, seed)
 
         overall_trace_object_list.push(computeScheduleWith(system, system_state, scheduler))
     })
