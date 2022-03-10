@@ -219,13 +219,14 @@ let systems = [
 	var traces = [] // Here is where we'll store the traces from the schedulers
 	var runtimes = [] // How long each scheduler took to complete everything
 	var max_runtime // The longest of the runtimes
+	var rng_seed = 55
 
 	resetSimulation();
 	populateSystemSelector();
 	populateSchedulerSelector(0);
 	buildUICpuColumn(0)
 
-	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem()))
+	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed))
 	//addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
 	//addScheduler(new RRScheduler("Round Robin Scheduler", getSelectedSystem()))
 	//addScheduler(new MultiFIFOScheduler("MultiFIFOScheduler Scheduler", getSelectedSystem()))
@@ -239,7 +240,7 @@ let systems = [
 	function systemChanged() {
 		buildUICpuColumn(0)
 		// Notify schedulers that the system has changed (as some may need to change their queues)
-		schedulers.forEach((scheduler) => scheduler.setSystem())
+		schedulers.forEach((scheduler) => scheduler.setSystem(getSelectedSystem()))
 		// Now, rebuild the queues column for each scheduler's UI, in case their queues changed
 	}
 
@@ -346,6 +347,8 @@ let systems = [
 
 	function updateUISchedulerQueues(scheduler_num) {
 		// Update all of the run queues
+		console.log("Updating from scheduler " + scheduler_num)
+		console.log("  " + JSON.stringify(schedulers[scheduler_num]))
 		for(queue_num=0; queue_num<schedulers[scheduler_num].queue_names.length; queue_num++) {
 			console.log("trace queue for scheduler " + scheduler_num + " queues" + " are " + JSON.stringify(traces[scheduler_num].trace_object_list[time_slice].queues))
 			updateUISchedulerQueue(

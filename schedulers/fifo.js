@@ -6,6 +6,7 @@ class Scheduler {
     }
 
     setSystem(system) {
+        console.log("setSystem called with " + JSON.stringify(system))
         this.system = system
         this.updateQueues()
     }
@@ -30,7 +31,7 @@ class RNG {
         var t = this.last_number += 0x6D2B79F5;
         t = Math.imul(t ^ t >>> 15, t | 1);
         t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-        this.last_number ((t ^ t >>> 14) >>> 0) / 4294967296;
+        this.last_number = ((t ^ t >>> 14) >>> 0) / 4294967296;
         return this.last_number
     }
 }
@@ -45,9 +46,9 @@ function mulberry32(a) {
 
 // Random scheduler that randomly assigns jobs to each CPU
 class RandomScheduler extends Scheduler {
-    constructor(name, system) {
+    constructor(name, system, seed) {
         super(name, system)
-        this.rng = new RNG(system_state.seed)
+        this.rng = new RNG(seed)
         console.log("RandomScheduler constructor")
     }
 
