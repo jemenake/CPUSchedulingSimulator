@@ -75,7 +75,7 @@ class RandomScheduler extends Scheduler {
     assignCPUJobs(available_jobs, method) {
         var assignments = Array(this.system.cpus).fill(null) // Start with an array of nulls for each CPU
         // As long as there are available jobs to assign to a CPU and there are CPU's to assign _to_...
-        while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
+        while (available_jobs[0] !== undefined && assignments.findIndex((val) => val == null) != -1 ) { // NOTE: For some reason the "available_jobs.length > 0" check fails even when the list is empty as the length is still 1, so let's check if it has on element this way
             let cpu_idx = assignments.findIndex((val) => val == null)
 
             let proc_idx = 0
