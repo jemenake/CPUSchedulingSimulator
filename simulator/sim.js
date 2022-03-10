@@ -45,6 +45,18 @@ current_proccesses = [
 //    }
 // }
 
+class Stats {
+    constructor(){
+        this.avg_response_time = 0;
+        this.avg_turn_around_time = 0;
+        this.avg_wait_time = 0;
+    
+        this.longest_response_time = -1;
+        this.longest_turn_around_time = -1;
+        this.longest_wait = -1;
+    }
+}
+
 class OverallTraceObject {
     constructor(trace_object_list, system, scheduler_name) {
         this.trace_object_list = trace_object_list
@@ -83,11 +95,17 @@ class Job {
         this.waiting_time = 0             // Waiting time when wants to compute
     }
 
-    turnAroundTime(){
-
+    getResponseTime(){
+        return this.first_computation_time - this.arrival_time 
     }
 
+    getTurnAroundTime(){
+        return this.finished_cycle_time - this.arrival_time
+    }
 
+    getWaitTime(){
+        return this.waiting_time
+    }
 
     clone() {
         return new Job(this.job_number, this.arrival_time, this.priority, this.lifecycle)
@@ -150,8 +168,8 @@ class Job {
             this.first_computation_time = cycle
         }
 
-        if (this.isFinished() & this.finished_cycle_time == -1){
-            this.first_computation_time = cycle
+        if (this.isFinished() && this.finished_cycle_time == -1){
+            this.finished_cycle_time = cycle
         }
     }
 }
@@ -327,7 +345,7 @@ function simulator(system, schedulers) {
 function computeScheduleWith(system, system_state, scheduler) {
     system_state.cycle = 0
     console.log("computeSchedule() called with the " + system.name + " and " + scheduler.name + " and " + system_state.jobs.length + " jobs")
-    trace = new OverallTraceObject([], system, scheduler.name)
+    let trace = new OverallTraceObject([], system, scheduler.name)
     // Run until nothing is alive
     //while (starting_jobs.some((job) => job.isAlive())) {
     while (system_state.getUnfinishedJobs().length > 0) {
@@ -380,17 +398,18 @@ function computeScheduleWith(system, system_state, scheduler) {
         })
 
         // Trace update
-            trace.trace_object_list.push(
-                new TraceObject(
-                system_state.getRunningJobs(system_state.cycle).reduce((list, job) => list.concat(job.clone()), []),  // Live Jobs
-                system_state.getWaitingJobs().reduce((list, job) => list.concat(job.clone()), []),  // Waiting Jobs
-                schedule.queues.reduce((outer_result_list, inner_list) => outer_result_list.concat( // Outer list of queues
-                    inner_list.length > 0 ? inner_list.reduce((inner_result_list, job) => inner_result_list.concat(job.clone()), []) : [] // Inner list of queues
-                    )
-                    , []),                  // Queues
-                schedule.assignments.reduce((list, job) => job != null ? list.concat(job.clone()) : list.concat(null), []))             // CPU assigments
-                )
+        trace.trace_object_list.push(
+            new TraceObject(
+            system_state.getRunningJobs(system_state.cycle).map(job => job.clone()),  // Live Jobs
+            system_state.getWaitingJobs().map(job => job.clone()),  // Waiting Jobs
+            schedule.queues.map((list) => // Outer list of queues
+                list.map((job) => list.length > 0 ? job.clone() : []) // Inner list of queues
+                ),               
+            schedule.assignments.reduce((list, job) => job != null ? list.concat(job.clone()) : list.concat(null), [])// CPU assigments
+            )
+        )             
         
+    
         // Constant Trace Values
         trace.queue_names = schedule.queue_names
         trace.system = system
@@ -401,6 +420,38 @@ function computeScheduleWith(system, system_state, scheduler) {
     }
 
     // Calculate Agregate Stats
+    var stats = new Stats()
+    // this.avg_response_time = 0;
+    // this.avg_turn_around_time = 0;
+    // this.avg_wait_time = 0;
+
+    // this.longest_response_time = -1;
+    // this.longest_turn_around_time = -1;
+    // this.longest_wait = -1;
+
+    system_state.jobs.forEach((job) => {
+        stats.avg_response_time += job.getResponseTime()
+        stats.avg_turn_around_time += job.getTurnAroundTime()
+        stats.avg_wait_time += job.getWaitTime()
+
+        if (job.getResponseTime() > stats.longest_response_time){
+            stats.longest_response_time = job.getResponseTime()
+        }
+
+        if (job.getTurnAroundTime() > stats.longest_turn_around_time){
+            stats.longest_turn_around_time = job.getTurnAroundTime()
+        }
+
+        if (job.getWaitTime() > stats.longest_wait){
+            stats.longest_wait = job.getWaitTime()
+        }
+
+    })
+
+    stats.avg_response_time = stats.avg_response_time / system_state.jobs.length
+    stats.avg_turn_around_time = stats.avg_turn_around_time / system_state.jobs.length
+    stats.avg_wait_time = stats.avg_wait_time / system_state.jobs.length
+    trace.stats = stats
 
     return trace;
 }

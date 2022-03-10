@@ -112,9 +112,9 @@ CPU Scheduler Simulator
 			<select id="#scheduler_0_selector" name="scheduler_0" class="presim"></select>
 			<div class="row border">
 				<!-- Queues -->
-				<div class="col-10 border">
+				<div class="col-10 border" id="#scheduler_0_queues">
 					Queues
-					<div class="row border" id="#scheduler_0_queues">
+					<div class="row border">
 						<div class="col-1 border">Pri0</div>
 						<div class="col-11 border">
 							<div class="row" id="#scheduler_0_queue_0">
@@ -128,17 +128,7 @@ CPU Scheduler Simulator
 							</div>
 						</div>
 					</div>
-					<div class="row border">
-						<div class="col-1 border">Pri1</div>
-						<div class="col-11 border">
-							<div class="row" id="#scheduler_0_queue_NONE">
-								<div class="col"></div><!-- consumes extra space to push things right -->
-								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P31</div>
-								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P3</div>
-								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P28</div>	
-							</div>
-						</div>
-					</div>
+
 					<div class="row border">
 						<div class="col-1 border">WAIT</div>
 						<div class="col-11 border">
@@ -232,7 +222,7 @@ let systems = [
 	resetSimulation();
 	populateSystemSelector();
 	populateSchedulerSelector(0);
-	updateUICpuColumn(0)
+	buildUICpuColumn(0)
 
 	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem()))
 	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
@@ -244,7 +234,7 @@ let systems = [
 	}
 
 	function systemChanged() {
-		updateUICpuColumn(0)
+		buildUICpuColumn(0)
 	}
 
 	////////////////////////////////////////////////////////////////
@@ -256,12 +246,18 @@ let systems = [
 		if (time_slice < 0) { time_slice = 0 }
 		if (time_slice > max_runtime) { time_slice = max_runtime }
 		console.log("time_slice is now " + time_slice)
+		console.log("Scheduler[0]'s trace for this cycle is now : " + JSON.stringify(traces[0].trace_object_list[time_slice]))
+		updateUI()
+	}
+
+	function updateUI() {
 		updateUITimeSlice()
 		updateUISchedulerQueues(0)
+		updateUISchedulerCpus(0)
 	}
 
 	function updateUITimeSlice() {
-		document.getElementById("#time_slice").text = "Time Slice : " + time_slice
+		document.getElementById("#time_slice").innerHTML = "Time Slice : " + time_slice
 	}
 
 
@@ -333,12 +329,13 @@ let systems = [
 		element.appendChild(column_pad)
 		// We have to reverse the list because the "front" of the queue is on the right
 		console.log("processes = " + JSON.stringify(processes))
-		for (process in processes) {
+		processes.forEach((process) => {
+			console.log("  process = " + JSON.stringify(process))
 			let process_element = document.createElement("div")
 			process_element.className = "col-1 border"
 			process_element.innerHTML = "P" + process.job_number
 			element.appendChild(process_element)
-		}
+		})
 	}
 
 	function updateUISchedulerQueues(scheduler_num) {
@@ -357,9 +354,30 @@ let systems = [
 		)
 	}
 
-	
+	function updateUISchedulerCpu(element_id, process) {
+		let element = getAndEmptyElement(element_id)
+		element.appendChild(document.createTextNode("CPU0"))
+		console.log("  process = " + JSON.stringify(process))
+		let process_element = document.createElement("div")
+		process_element.className = "border"
+		if (process == null) {
+			process_element.innerHTML = "IDLE"
+		} else {
+			process_element.innerHTML = "P" + process.job_number
+		}
+		element.appendChild(process_element)
+	}
 
-	function updateUICpuColumn(scheduler_num) {
+	function updateUISchedulerCpus(scheduler_num) {
+		for (cpu_num=0; cpu_num<getSelectedSystem().cpus; cpu_num++) {
+			updateUISchedulerCpu(
+				getSchedulerCpuID(scheduler_num, cpu_num),
+				traces[scheduler_num].trace_object_list[time_slice].assignments[cpu_num]
+			)
+		}
+	}
+
+	function buildUICpuColumn(scheduler_num) {
 		let id = `#scheduler_${scheduler_num}_cpus`
 		console.log("ID = " + id)
 		var cpuBox = document.getElementById(id)
@@ -436,6 +454,9 @@ let systems = [
 		for (i=0; i<traces.length; i++) {
 			console.log("Scheduler " + i + " needed " + traces[i].trace_object_list.length + " cycles")
 		}
+		time_slice = 0
+		updateUI()
+
 	}
 
 
