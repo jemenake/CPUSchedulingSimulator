@@ -275,8 +275,8 @@ function throwError(msg) {
     console.error(msg)
 }
 
-let MIN_JOBS = 4
-let MAX_JOBS = 4
+let MIN_JOBS = 10
+let MAX_JOBS = 10
 let MIN_WAIT_TIME = 1
 let MAX_WAIT_TIME = 10 // Maximum time any job needs to wait for something
 let MIN_COMPUTE_TIME = 1
@@ -400,10 +400,10 @@ function computeScheduleWith(system, system_state, scheduler) {
         system_state.jobs.forEach((job) => {
             // console.log("Checking job #" + job.job_number)
             if (job.isWaiting()) {
-                console.log("Looks like job #" + job.job_number + " is waiting, so we'll decrement it's wait time")
-                console.log("Before: " + JSON.stringify(job.lifecycle))
+                // console.log("Looks like job #" + job.job_number + " is waiting, so we'll decrement it's wait time")
+                // console.log("Before: " + JSON.stringify(job.lifecycle))
                 job.recordWait()        // Reduce wait
-                console.log("After : " + JSON.stringify(job.lifecycle))
+                // console.log("After : " + JSON.stringify(job.lifecycle))
             }
         })
 
@@ -412,12 +412,12 @@ function computeScheduleWith(system, system_state, scheduler) {
         for (let i = 0; i < schedule.assignments.length; i++) {
             var job = schedule.assignments[i]
             if (job == null) {
-                console.log("CPU" + i + " Got a null assignment. This isn't a bad thing. Just noting it in the logs during development")
+                // console.log("CPU" + i + " Got a null assignment. This isn't a bad thing. Just noting it in the logs during development")
             } else {
-                console.log("Looks like job #" + job.job_number + " got some CPU time")
-                console.log("Before: " + JSON.stringify(job.lifecycle))
+                // console.log("Looks like job #" + job.job_number + " got some CPU time")
+                // console.log("Before: " + JSON.stringify(job.lifecycle))
                 job.recordComputation(system_state.cycle)  // Reduce computation    
-                console.log("After : " + JSON.stringify(job.lifecycle))
+                // console.log("After : " + JSON.stringify(job.lifecycle))
             }
         }
 
