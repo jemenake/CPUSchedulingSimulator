@@ -51,9 +51,9 @@ class Stats {
         this.avg_turn_around_time = 0;
         this.avg_wait_time = 0;
     
-        this.longest_response_time = -1;
-        this.longest_turn_around_time = -1;
-        this.longest_wait = -1;
+        this.longest_response_time = null;
+        this.longest_turn_around_time = null
+        this.longest_wait = null;
     }
 }
 
@@ -90,8 +90,8 @@ class Job {
         this.lifecycle = lifecycle.slice()
 
         // Metrics
-        this.first_computation_time = -1  // Used for response time
-        this.finished_cycle_time = -1     // Used for turnaround
+        this.first_computation_time = null  // Used for response time
+        this.finished_cycle_time = null     // Used for turnaround
         this.waiting_time = 0             // Waiting time when wants to compute
     }
 
@@ -108,7 +108,11 @@ class Job {
     }
 
     clone() {
-        return new Job(this.job_number, this.arrival_time, this.priority, this.lifecycle)
+        let job =  new Job(this.job_number, this.arrival_time, this.priority, this.lifecycle)
+        job.first_computation_time = this.first_computation_time
+        job.finished_cycle_time = this.finished_cycle_time
+        job.waiting_time = this.waiting_time
+        return job
     }
 
     toString() {
@@ -155,6 +159,11 @@ class Job {
             // for this timeslice
             throw new Error("ERROR: we were asked to record computation for a waiting process, which looked like " + JSON.stringify(this))
         }
+
+        if (this.first_computation_time == null){
+            this.first_computation_time = cycle
+        }
+
         // Get everything after the first char as an integer
         let number = parseInt(this.lifecycle[0].substring(1))
         // If it's a 1, then we have finished waiting, so delete this array element. Otherwise, decrement
@@ -164,11 +173,7 @@ class Job {
             this.lifecycle[0] = "c" + (number - 1)
         }
 
-        if (this.first_computation_time == -1){
-            this.first_computation_time = cycle
-        }
-
-        if (this.isFinished() && this.finished_cycle_time == -1){
+        if (this.isFinished() && this.finished_cycle_time == null){
             this.finished_cycle_time = cycle + 1 // Add one becuase technically it finishes at the start of next cycle
         }
     }
