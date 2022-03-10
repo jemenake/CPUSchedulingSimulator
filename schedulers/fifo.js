@@ -125,7 +125,7 @@ class FIFOScheduler extends RandomScheduler {
 
 // Round-Robin scheduler alots a certain number of cyles for each process, and switches to the next process in line once that limit is hit
 class RRScheduler extends FIFOScheduler {
-    constructor(name, system, cycle_limit) {
+    constructor(name, system, cycle_limit = 1) {
         super(name, system)
         this.cycle_count = 0
         this.cycle_limit = cycle_limit
@@ -277,7 +277,7 @@ class MultiFIFOScheduler extends FIFOScheduler {
 
 // Priority scheduler maintains a queue of queues for each priority level
 class PriorityScheduler extends FIFOScheduler {
-    constructor(name, system, num_priority_levels) {
+    constructor(name, system, num_priority_levels = 2) {
         super(name, system)
         this.num_priority_levels = num_priority_levels
         this.queues = []
