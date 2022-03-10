@@ -66,7 +66,7 @@ class RandomScheduler extends Scheduler {
     }
 
     logAvailableJobs(available_jobs) {
-        console.log("available_jobs = " + JSON.stringify(available_jobs))
+        // console.log("available_jobs = " + JSON.stringify(available_jobs))
         available_jobs.forEach((job) => {
             console.log("Live Job: " + job.job_number + " " + JSON.stringify(job.lifecycle))
         })
@@ -145,31 +145,51 @@ class FIFOScheduler extends RandomScheduler {
 class RRScheduler extends FIFOScheduler {
     constructor(name, system, cycle_limit = 1) {
         super(name, system)
-        this.cycle_count = 0
         this.cycle_limit = cycle_limit
         console.log("RRScheduler constructor")
     }
 
     schedule(system_state) {
+        console.log("=====New Cycle=====")
+        // Make sure waiting jobs have their cycle count reset
+        for (var job of system_state.getWaitingJobs()) {
+            job.cycle_count = 0
+        }
         var available_jobs = system_state.getRunningJobs()
         super.logAvailableJobs(available_jobs)
         var cur_jobs = this.getCurrentJobs(available_jobs)
 
         // Only need to check cycles if this isn't the first cycle and there is more than one job
-        if (this.queues[0].length > 0 && cur_jobs.length > 1) {
-            var last_process = this.queues[0][0]
-            // New job so reset cyle count
-            if (last_process.job_number != cur_jobs[0].job_number) {
-                this.cycle_count = 0
+        if (this.queues[0].length > 0 && cur_jobs.length > this.system.cpus) {
+            let num_shifts = 0
+            for (let i = 0; i < this.system.cpus; i++) { 
+                // New job so reset cyle count
+                if (i < this.queues[0].length) {
+                    var last_process = this.queues[0][i]
+                    if (last_process.job_number != cur_jobs[i].job_number) {
+                        cur_jobs[i].cycle_count = 0
+                    }
+                }
+        
+                // Current job has run out of cycles so reset count and rotate jobs
+                if (cur_jobs[i].cycle_count >= this.cycle_limit) {
+                    cur_jobs[i].cycle_count = 0
+                    num_shifts++ // If you shift during the loop it makes things tricky
+                }
             }
-    
-            // Current job has run out of cycles so rotate jobs and reset count
-            if (this.cycle_count >= this.cycle_limit) {
+
+            for (let i = 0; i < num_shifts; i++) {
                 cur_jobs.push(cur_jobs.shift())
-                this.cycle_count = 0
             }
         }
-        this.cycle_count++
+
+        // Only jobs that are given CPU time have their cycles incremented
+        for (let i = 0; i < cur_jobs.length; i++) {
+            if (i < this.system.cpus) {
+                cur_jobs[i].cycle_count++
+            }
+            console.log("Job " + cur_jobs[i].job_number + " cycle count: " + cur_jobs[i].cycle_count)
+        }
 
         this.queues[0] = [...cur_jobs] // Saves potentially shifted jobs
         var assignments = this.assignCPUJobs(cur_jobs, "rr")

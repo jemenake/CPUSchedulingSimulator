@@ -88,6 +88,7 @@ class Job {
         // This clones the lifecycle (as long as it remains an array of strings) so that it will be easy to create
         // clone a job with something like:  new_job = new Job(old_job)
         this.lifecycle = lifecycle.slice()
+        this.cycle_count = 0 // Cycle count for round robin
 
         // Metrics
         this.first_computation_time = null  // Used for response time
@@ -369,7 +370,7 @@ function computeScheduleWith(system, system_state, scheduler) {
         
         let schedule = scheduler.schedule(system_state)
         schedule.assignments.forEach((job) => {
-            console.log("Assignment = " + JSON.stringify(job))
+            // console.log("Assignment = " + JSON.stringify(job))
         })
 
 
@@ -397,7 +398,7 @@ function computeScheduleWith(system, system_state, scheduler) {
         // computation will get its last computation done, and _then_ get a cycle of wait
         // reduced
         system_state.jobs.forEach((job) => {
-            console.log("Checking job #" + job.job_number)
+            // console.log("Checking job #" + job.job_number)
             if (job.isWaiting()) {
                 console.log("Looks like job #" + job.job_number + " is waiting, so we'll decrement it's wait time")
                 console.log("Before: " + JSON.stringify(job.lifecycle))
