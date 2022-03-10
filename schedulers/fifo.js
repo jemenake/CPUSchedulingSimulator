@@ -12,6 +12,14 @@ class Scheduler {
     }
 }
 
+// Sourced from stack overflow (https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript)
+function mulberry32(a) {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+
 // Random scheduler that randomly assigns jobs to each CPU
 class RandomScheduler extends Scheduler {
     constructor(name, system) {
@@ -23,7 +31,7 @@ class RandomScheduler extends Scheduler {
         var available_jobs = system_state.getRunningJobs()
         this.logAvailableJobs(available_jobs)
         this.queues[0] = [...available_jobs] // Queue order doesn't matter so just assign it to live jobs
-        let assignments = this.assignCPUJobs(available_jobs, "random")
+        let assignments = this.assignCPUJobs(available_jobs, "random", system_state.seed)
         console.log("QUEUES: " + JSON.stringify(this.queues))
         return {
             "queues": this.queues,
@@ -47,7 +55,7 @@ class RandomScheduler extends Scheduler {
 
             let proc_idx = 0
             if (method == "random") {
-                proc_idx = Math.floor(Math.random() * available_jobs.length) // Pick a random process from those available
+                proc_idx = Math.floor(mulberry32(seed) * available_jobs.length) // Pick a random process from those available
             } else if (method == "fifo" || method == 'rr') { // fifo and round-robin both choose the first process
                 proc_idx = 0
             }
