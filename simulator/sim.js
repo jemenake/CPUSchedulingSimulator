@@ -169,7 +169,7 @@ class Job {
         }
 
         if (this.isFinished() && this.finished_cycle_time == -1){
-            this.finished_cycle_time = cycle
+            this.finished_cycle_time = cycle + 1 // Add one becuase technically it finishes at the start of next cycle
         }
     }
 }
