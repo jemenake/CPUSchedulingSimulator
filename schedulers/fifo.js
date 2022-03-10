@@ -12,6 +12,14 @@ class Scheduler {
     }
 }
 
+// Sourced from stack overflow (https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript)
+function mulberry32(a) {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+
 // Random scheduler that randomly assigns jobs to each CPU
 class RandomScheduler extends Scheduler {
     constructor(name, system) {
@@ -23,7 +31,8 @@ class RandomScheduler extends Scheduler {
         var available_jobs = system_state.getRunningJobs()
         this.logAvailableJobs(available_jobs)
         this.queues[0] = [...available_jobs] // Queue order doesn't matter so just assign it to live jobs
-        let assignments = this.assignCPUJobs(available_jobs, "random")
+        let assignments = this.assignCPUJobs(available_jobs, "random", system_state.seed)
+        console.log("QUEUES: " + JSON.stringify(this.queues))
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -39,14 +48,14 @@ class RandomScheduler extends Scheduler {
     }
 
     assignCPUJobs(available_jobs, method) {
-        var assignments = Array(this.system.cpus.length).fill(null) // Start with an array of nulls for each CPU
+        var assignments = Array(this.system.cpus).fill(null) // Start with an array of nulls for each CPU
         // As long as there are available jobs to assign to a CPU and there are CPU's to assign _to_...
         while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
             let cpu_idx = assignments.findIndex((val) => val == null)
 
             let proc_idx = 0
             if (method == "random") {
-                proc_idx = Math.floor(Math.random() * available_jobs.length) // Pick a random process from those available
+                proc_idx = Math.floor(mulberry32(seed) * available_jobs.length) // Pick a random process from those available
             } else if (method == "fifo" || method == 'rr') { // fifo and round-robin both choose the first process
                 proc_idx = 0
             }
@@ -146,29 +155,36 @@ class RRScheduler extends FIFOScheduler {
     }
 }
 
-// Multi scheduler maintains a queue of queues for each priority level
+// Multi scheduler maintains a FIFO queue for each CPU
 class MultiFIFOScheduler extends FIFOScheduler {
     constructor(name, system) {
         super(name, system)
         this.queues = []
         this.queue_names = []
-        for(let i = 0; i < this.system.cpus.length; i++) {
+        for(let i = 0; i < this.system.cpus; i++) {
             this.queue_names.push("CPU" + i + " Queue")
             this.queues.push([])
         }
-        console.log("PriorityScheduler constructor")
+        console.log("MultiFIFOScheduler constructor")
     }
 
     schedule(system_state) {
         var available_jobs = system_state.getRunningJobs()
         super.logAvailableJobs(available_jobs)
-        var prev_jobs_live = this.getPrevJobsMulti(available_jobs)
-        var cur_jobs = this.getCurrentJobsMulti(prev_jobs_live, available_jobs)
-        for (let i = 0; i < this.queues.length; i++) {
-            this.queues[i] = [...cur_jobs[i]]
+        var prev_jobs = this.getPrevJobsMulti(available_jobs)
+
+        if (prev_jobs[0].length == 0) {
+            var cur_jobs = [available_jobs]
+            this.queues[0] = cur_jobs[0]
+        } else {
+            var cur_jobs = this.getCurrentJobsMulti(prev_jobs, available_jobs)
+            for (let i = 0; i < cur_jobs.length; i++) {
+                this.queues[i] = [...cur_jobs[i]]
+            }
         }
 
         var assignments = super.assignCPUJobs(this.flattenByCol(cur_jobs), "fifo")
+        console.log("QUEUES: " + JSON.stringify(this.queues))
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -178,39 +194,40 @@ class MultiFIFOScheduler extends FIFOScheduler {
 
     // Returns a list of lists of previous jobs that are still live
     getPrevJobsMulti(available_jobs) {
-        prev_jobs_live = Array.from(Array(this.queues.length), () => [])
+        var prev_jobs = Array.from(Array(this.queues.length), () => [])
 
         // Only add previous jobs that are still live
         for (let i = 0; i < this.queues.length; i++) {
             for (let j = 0; j < this.queues[i].length; j++) {
                 if (this.job_exists(this.queues[i][j], available_jobs)) {
-                    prev_jobs_live[i].push(this.queues[i][j])
+                    prev_jobs[i].push(this.queues[i][j])
                 }
             }
         }
-        return prev_jobs_live
+        return prev_jobs
     }
 
     // Returns an updated list of current jobs by adding on new jobs to previous
-    getCurrentJobsMulti(prev_jobs_live, available_jobs) {
-        new_jobs = getNewJobs(prev_jobs_live, available_jobs)
-        for (job of new_jobs) {
-            best_index = this.shortestListIndex(prev_jobs_live)
-            prev_jobs_live[best_index].push(job)
+    getCurrentJobsMulti(prev_jobs, available_jobs) {
+        var new_jobs = this.getNewJobs(prev_jobs, available_jobs)
+        for (var job of new_jobs) {
+            const best_index = this.shortestListIndex(prev_jobs)
+            prev_jobs[best_index].push(job)
         }
-        return prev_jobs_live
+        return prev_jobs
     }
 
     // Returns a list of jobs that are available but not in previous jobs
-    getNewJobs(prev_jobs_live, available_jobs) {
-        return available_jobs.filter(x => !prev_jobs_live.flat().includes(x))
+    getNewJobs(prev_jobs, available_jobs) {
+        return available_jobs.filter(x => !prev_jobs.flat().includes(x))
     }
 
     // Takes a list of lists and returns a list of all elements in column order
     // Ex: [[1,2], [3,4], [5]] => [1,3,5,2,4]
     flattenByCol(lists) {
-        flattened = []
-        for (let col = 0; col < this.longestLengthList(lists); col++) {
+        var flattened = []
+        let maxColLen = this.longestLengthList(lists)
+        for (let col = 0; col < maxColLen; col++) {
             for (let row = 0; row < lists.length; row++) {
                 if (col < lists[row].length) {
                     flattened.push(lists[row][col])
@@ -222,8 +239,8 @@ class MultiFIFOScheduler extends FIFOScheduler {
 
     // Returns index of the shortest list of a list of lists
     shortestListIndex(lists) {
-        min_len = lists[0].length
-        min_index = 0
+        var min_len = lists[0].length
+        var min_index = 0
         for (let i = 1; i < lists.length; i++) {
             if (lists[i].length < min_len) {
                 min_len = lists[i].length
@@ -235,8 +252,8 @@ class MultiFIFOScheduler extends FIFOScheduler {
 
     // Returns length of longest list in a list of irregular length lists
     longestLengthList(lists) {
-        max_len = lists[0].length
-        max_index = 0
+        var max_len = lists[0].length
+        var max_index = 0
         for (let i = 1; i < lists.length; i++) {
             if (lists[i].length > max_len) {
                 max_len = lists[i].length
