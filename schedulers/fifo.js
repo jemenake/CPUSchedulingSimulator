@@ -12,6 +12,14 @@ class Scheduler {
     }
 }
 
+// Sourced from stack overflow (https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript)
+function mulberry32(a) {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+
 // Random scheduler that randomly assigns jobs to each CPU
 class RandomScheduler extends Scheduler {
     constructor(name, system) {
@@ -23,7 +31,7 @@ class RandomScheduler extends Scheduler {
         var available_jobs = system_state.getRunningJobs()
         this.logAvailableJobs(available_jobs)
         this.queues[0] = [...available_jobs] // Queue order doesn't matter so just assign it to live jobs
-        let assignments = this.assignCPUJobs(available_jobs, "random")
+        let assignments = this.assignCPUJobs(available_jobs, "random", system_state.seed)
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -38,7 +46,7 @@ class RandomScheduler extends Scheduler {
         })
     }
 
-    assignCPUJobs(available_jobs, method) {
+    assignCPUJobs(available_jobs, method, seed) {
         var assignments = Array(this.system.cpus.length).fill(null) // Start with an array of nulls for each CPU
         // As long as there are available jobs to assign to a CPU and there are CPU's to assign _to_...
         while (available_jobs.length > 0 && assignments.findIndex((val) => val == null) != -1 ) {
@@ -46,7 +54,7 @@ class RandomScheduler extends Scheduler {
 
             let proc_idx = 0
             if (method == "random") {
-                proc_idx = Math.floor(Math.random() * available_jobs.length) // Pick a random process from those available
+                proc_idx = Math.floor(mulberry32(seed) * available_jobs.length) // Pick a random process from those available
             } else if (method == "fifo" || method == 'rr') { // fifo and round-robin both choose the first process
                 proc_idx = 0
             }
