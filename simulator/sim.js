@@ -326,6 +326,16 @@ function createJobList(seed) {
     // We need to make sure that _some_ job starts at time=0 (or it makes for a boring start to the simulation)
     // so we just pick job #0
     jobs[0].arrival_time = 0
+    // Now, we need to order the jobs so that their job numbers are in sequential order
+    // Easiest way to do this is probably to just sort the list by arrival_time and
+    // then re-assign the job numbers to match their index in the array
+    jobs.sort((a,b) => a.arrival_time - b.arrival_time)
+    for(i=0; i<jobs.length; i++) {
+        console.log("Assigning job number " + i + " to job number " + jobs[i].job_number)
+        jobs[i].job_number = i
+    }
+
+
     console.log("Last expected cycle is " + LAST_EXPECTED_CYCLE)
     return jobs
 }
