@@ -54,6 +54,8 @@ class Stats {
         this.longest_response_time = null;
         this.longest_turn_around_time = null
         this.longest_wait = null;
+
+        this.throughput = null;
     }
 }
 
@@ -369,7 +371,8 @@ function computeScheduleWith(system, system_state, scheduler) {
     system_state.cycle = 0
     console.log("computeSchedule() called with the " + system.name + " and " + scheduler.name + " and " + system_state.jobs.length + " jobs")
     let trace = new OverallTraceObject([], system, scheduler.name)
-    
+    let cpus_filled_sum = 0;
+
     // Run until nothing is alive
     //while (starting_jobs.some((job) => job.isAlive())) {
     while (system_state.getUnfinishedJobs().length > 0) {
@@ -423,6 +426,7 @@ function computeScheduleWith(system, system_state, scheduler) {
             if (job == null) {
                 // console.log("CPU" + i + " Got a null assignment. This isn't a bad thing. Just noting it in the logs during development")
             } else {
+                cpus_filled_sum += 1
                 // console.log("Looks like job #" + job.job_number + " got some CPU time")
                 // console.log("Before: " + JSON.stringify(job.lifecycle))
                 job.recordComputation(system_state.cycle)  // Reduce computation    
@@ -477,6 +481,7 @@ function computeScheduleWith(system, system_state, scheduler) {
 
     })
 
+    stats.throughput = cpus_filled_sum / system_state.cycle
     stats.avg_response_time = stats.avg_response_time / system_state.jobs.length
     stats.avg_turn_around_time = stats.avg_turn_around_time / system_state.jobs.length
     stats.avg_wait_time = stats.avg_wait_time / system_state.jobs.length
