@@ -46,11 +46,11 @@ current_proccesses = [
 // }
 
 class Stats {
-    constructor(){
+    constructor() {
         this.avg_response_time = 0;
         this.avg_turn_around_time = 0;
         this.avg_wait_time = 0;
-    
+
         this.longest_response_time = null;
         this.longest_turn_around_time = null
         this.longest_wait = null;
@@ -96,20 +96,20 @@ class Job {
         this.waiting_time = 0             // Waiting time when wants to compute
     }
 
-    getResponseTime(){
-        return this.first_computation_time - this.arrival_time 
+    getResponseTime() {
+        return this.first_computation_time - this.arrival_time
     }
 
-    getTurnAroundTime(){
+    getTurnAroundTime() {
         return this.finished_cycle_time - this.arrival_time
     }
 
-    getWaitTime(){
+    getWaitTime() {
         return this.waiting_time
     }
 
     clone() {
-        let job =  new Job(this.job_number, this.arrival_time, this.priority, this.lifecycle)
+        let job = new Job(this.job_number, this.arrival_time, this.priority, this.lifecycle)
         job.first_computation_time = this.first_computation_time
         job.finished_cycle_time = this.finished_cycle_time
         job.waiting_time = this.waiting_time
@@ -161,7 +161,7 @@ class Job {
             throw new Error("ERROR: we were asked to record computation for a waiting process, which looked like " + JSON.stringify(this))
         }
 
-        if (this.first_computation_time == null){
+        if (this.first_computation_time == null) {
             this.first_computation_time = cycle
         }
 
@@ -174,7 +174,7 @@ class Job {
             this.lifecycle[0] = "c" + (number - 1)
         }
 
-        if (this.isFinished() && this.finished_cycle_time == null){
+        if (this.isFinished() && this.finished_cycle_time == null) {
             this.finished_cycle_time = cycle + 1 // Add one becuase technically it finishes at the start of next cycle
         }
     }
@@ -198,7 +198,7 @@ class SystemState {
         this.jobs = jobs
         this.cycle = 0
         this.seed = seed
-        }
+    }
 
     getSystemTime() {
         return this.cycle
@@ -206,7 +206,7 @@ class SystemState {
 
     // Returns all jobs which haven't finished
     getUnfinishedJobs() {
-        return this.jobs.filter((job) => (! job.isFinished()))
+        return this.jobs.filter((job) => (!job.isFinished()))
     }
 
     // Get all jobs which are started and not finished (either waiting or requiring computation)
@@ -217,7 +217,7 @@ class SystemState {
 
     // Get all jobs which are waiting for computation
     getRunningJobs() {
-        return this.getLiveJobs().filter((job) => job.isAlive(this.cycle) && (! job.isWaiting()))
+        return this.getLiveJobs().filter((job) => job.isAlive(this.cycle) && (!job.isWaiting()))
     }
 
     // Get all jobs which are waiting for computation
@@ -266,10 +266,6 @@ class SystemState {
     }
 }
 
-// Goals 
-// 1. get FIFO working
-// 2. Add multiple cores
-
 function throwError(msg) {
     alert(msg)
     console.error(msg)
@@ -285,6 +281,7 @@ let MAX_WAIT_CYCLES = 4 // Maximum _number_ of times any job needs to wait for s
 let MIN_PRIORITY = 0
 let MAX_PRIORITY = 1
 let MAX_ARRIVAL_TIME = 40
+
 // We need some way of stopping if we have an infinite loop, for some reason. So, figure out the
 // longest a process can need to run (_not_ counting time waiting in the run queue) and add that
 // to the latest possible arrival time. This should give us a rough idea of clock cycle count whereupon
@@ -307,7 +304,7 @@ function createJob(job_number, seed) {
     var lifecycle = []
     lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(mulberry32(seed) * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
     let num_waits = Math.floor(mulberry32(seed) * MAX_WAIT_CYCLES)
-    for(j=0; j<num_waits; j++) {
+    for (j = 0; j < num_waits; j++) {
         lifecycle.push("w" + (MIN_WAIT_TIME + Math.floor(mulberry32(seed) * (MAX_WAIT_TIME - MIN_WAIT_TIME))))
         lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(mulberry32(seed) * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
     }
@@ -320,17 +317,19 @@ function createJobList(seed) {
     // Pick a number between MIN_JOBS and MAX_JOBS
     let num_jobs = MIN_JOBS + Math.floor(mulberry32(seed) * (MAX_JOBS - MIN_JOBS))
     var jobs = []
-    for (i=0; i<num_jobs; i++) {
-        jobs.push(createJob(i, seed+i))
+    for (i = 0; i < num_jobs; i++) {
+        jobs.push(createJob(i, seed + i))
     }
+
     // We need to make sure that _some_ job starts at time=0 (or it makes for a boring start to the simulation)
     // so we just pick job #0
     jobs[0].arrival_time = 0
+
     // Now, we need to order the jobs so that their job numbers are in sequential order
     // Easiest way to do this is probably to just sort the list by arrival_time and
     // then re-assign the job numbers to match their index in the array
-    jobs.sort((a,b) => a.arrival_time - b.arrival_time)
-    for(i=0; i<jobs.length; i++) {
+    jobs.sort((a, b) => a.arrival_time - b.arrival_time)
+    for (i = 0; i < jobs.length; i++) {
         console.log("Assigning job number " + i + " to job number " + jobs[i].job_number)
         jobs[i].job_number = i
     }
@@ -343,7 +342,6 @@ function createJobList(seed) {
 function simulator(system, schedulers, seed) {
     console.log("1")
     var starting_jobs = createJobList(seed)
-
     var overall_trace_object_list = []
 
     // Here's where we make a list of every scheduler we want to run this job list against
@@ -371,13 +369,14 @@ function computeScheduleWith(system, system_state, scheduler) {
     system_state.cycle = 0
     console.log("computeSchedule() called with the " + system.name + " and " + scheduler.name + " and " + system_state.jobs.length + " jobs")
     let trace = new OverallTraceObject([], system, scheduler.name)
+    
     // Run until nothing is alive
     //while (starting_jobs.some((job) => job.isAlive())) {
     while (system_state.getUnfinishedJobs().length > 0) {
         if (system_state.getSystemTime() > LAST_EXPECTED_CYCLE * 2) {
             throwError("ERROR: The system clock reached " + system_state.getSystemTime() + " which is longer than we expected to need for computation. It's likely that the simulator has an infinite loop, somewhere.")
         }
-        
+
         let schedule = scheduler.schedule(system_state)
         schedule.assignments.forEach((job) => {
             // console.log("Assignment = " + JSON.stringify(job))
@@ -388,15 +387,15 @@ function computeScheduleWith(system, system_state, scheduler) {
         // Trace update
         trace.trace_object_list.push(
             new TraceObject(
-            system_state.getRunningJobs(system_state.cycle).map(job => job.clone()),  // Live Jobs
-            system_state.getWaitingJobs().map(job => job.clone()),  // Waiting Jobs
-            schedule.queues.map((list) => // Outer list of queues
-                list.map((job) => list.length > 0 ? job.clone() : []) // Inner list of queues
-                ),               
-            schedule.assignments.reduce((list, job) => job != null ? list.concat(job.clone()) : list.concat(null), [])// CPU assigments
+                system_state.getRunningJobs(system_state.cycle).map(job => job.clone()),  // Live Jobs
+                system_state.getWaitingJobs().map(job => job.clone()),  // Waiting Jobs
+                schedule.queues.map((list) => // Outer list of queues
+                    list.map((job) => list.length > 0 ? job.clone() : []) // Inner list of queues
+                ),
+                schedule.assignments.reduce((list, job) => job != null ? list.concat(job.clone()) : list.concat(null), [])// CPU assigments
             )
-        )             
-        
+        )
+
         // Constant Trace Values
         trace.queue_names = schedule.queue_names
         trace.system = system
@@ -436,11 +435,11 @@ function computeScheduleWith(system, system_state, scheduler) {
 
             let found = false;
             schedule.assignments.forEach((assignement) => {
-                if (assignement != null && assignement.job_number == running_job.job_number){
+                if (assignement != null && assignement.job_number == running_job.job_number) {
                     found = true
                 }
             })
-            if (!found){
+            if (!found) {
                 running_job.waiting_time += 1
             }
         })
@@ -464,15 +463,15 @@ function computeScheduleWith(system, system_state, scheduler) {
         stats.avg_turn_around_time += job.getTurnAroundTime()
         stats.avg_wait_time += job.getWaitTime()
 
-        if (job.getResponseTime() > stats.longest_response_time){
+        if (job.getResponseTime() > stats.longest_response_time) {
             stats.longest_response_time = job.getResponseTime()
         }
 
-        if (job.getTurnAroundTime() > stats.longest_turn_around_time){
+        if (job.getTurnAroundTime() > stats.longest_turn_around_time) {
             stats.longest_turn_around_time = job.getTurnAroundTime()
         }
 
-        if (job.getWaitTime() > stats.longest_wait){
+        if (job.getWaitTime() > stats.longest_wait) {
             stats.longest_wait = job.getWaitTime()
         }
 
