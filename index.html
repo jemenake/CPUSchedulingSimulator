@@ -203,6 +203,10 @@ CPU Scheduler Simulator
 			updateUISchedulerCpus(scheduler_num)
 			updateUISchedulerTapes(scheduler_num)
 		}
+		var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+		var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+  			return new bootstrap.Popover(popoverTriggerEl)
+		})
 	}
 
 	function updateUITimeSlice() {
@@ -241,8 +245,27 @@ CPU Scheduler Simulator
 		let process_element = document.createElement("div")
 		process_element.className = className
 		if (process != null) {
-			process_element.innerHTML = "P" + process.job_number
-			process_element.style.color = colors[process.job_number % colors.length]
+			// process_element.innerHTML = "P" + process.job_number
+			// process_element.style.color = colors[process.job_number % colors.length]
+			// process_element.setAttribute("data-bs-toggle", "popover")
+			// process_element.setAttribute("data-bs-trigger", "hover")
+			// process_element.setAttribute("data-bs-content", "Popover text")
+			// process_element.setAttribute("data-bs-title", "title1")
+			// process_element.setAttribute("title", "title2")
+			button_element = document.createElement("button")
+			button_element.type = "button"
+			button_element.className = "btn btn-primary " + className
+			button_element.style.color = colors[process.job_number % colors.length]
+			button_element.style.backgroundColor = "#FFFFFF"
+			button_element.innerHTML = "P" + process.job_number
+			button_element.setAttribute("data-bs-toggle", "popover")
+			button_element.setAttribute("data-bs-trigger", "hover")
+			button_element.setAttribute("data-bs-content", "longest wait: 1<br/>answer_time: 2<br/>turnaround time: 3")
+			button_element.setAttribute("data-bs-html", true)
+			// button_element.setAttribute("data-bs-title", "title1")
+			// button_element.setAttribute("title", "title2")
+			return button_element
+			process_element.appendChild(button_element)
 		} else {
 			process_element.innerHTML = nullText
 		}
