@@ -271,25 +271,27 @@ class SystemState {
 function throwError(msg) {
     alert(msg)
     console.error(msg)
+    someFunctionThatDoesntExist()
 }
 
-let MIN_JOBS = 10
-let MAX_JOBS = 10
-let MIN_WAIT_TIME = 1
-let MAX_WAIT_TIME = 10 // Maximum time any job needs to wait for something
-let MIN_COMPUTE_TIME = 1
-let MAX_COMPUTE_TIME = 10 // Maximum time any job needs to compute before needing to wait or finish
+// let MIN_JOBS = 10
+// let MAX_JOBS = 10
+// let MIN_WAIT_TIME = 1
+// let MAX_WAIT_TIME = 10 // Maximum time any job needs to wait for something
+// let MIN_COMPUTE_TIME = 1
+// let MAX_COMPUTE_TIME = 10 // Maximum time any job needs to compute before needing to wait or finish
+let AVG_COMPUTE_WAIT_CYCLE = 12
 let MAX_WAIT_CYCLES = 4 // Maximum _number_ of times any job needs to wait for something like
 let MIN_PRIORITY = 0
 let MAX_PRIORITY = 1
-let MAX_ARRIVAL_TIME = 40
+// let MAX_ARRIVAL_TIME = 40
 
 // We need some way of stopping if we have an infinite loop, for some reason. So, figure out the
 // longest a process can need to run (_not_ counting time waiting in the run queue) and add that
 // to the latest possible arrival time. This should give us a rough idea of clock cycle count whereupon
 // we can terminate the simulation with an error. We need to pad this number (probably by multiplying by
 // some amount) in order to account for time the process is waiting in the run queue.
-let LAST_EXPECTED_CYCLE = MAX_ARRIVAL_TIME + (MAX_COMPUTE_TIME * (1 + MAX_WAIT_CYCLES)) + (MAX_WAIT_TIME * MAX_WAIT_CYCLES)
+let LAST_EXPECTED_CYCLE = AVG_COMPUTE_WAIT_CYCLE * MAX_WAIT_CYCLES * 100
 
 // Sourced from stack overflow (https://stackoverflow.com/questions/521295/seeding-the-random-number-generator-in-javascript)
 function mulberry32(a) {
@@ -299,10 +301,17 @@ function mulberry32(a) {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
 }
 
-function createJob(job_number, seed) {
+function createJob(job_number, wait_ratio, job_load, seed, last_arrival) {
     let priority = MIN_PRIORITY + Math.floor(mulberry32(seed) * (MAX_PRIORITY - MIN_PRIORITY))
-    let arrival_time = Math.floor(mulberry32(seed) * MAX_ARRIVAL_TIME)
-    // We _must_ have a starting computation
+    // Arrival time is calculated from the "job_load", which is a target number of
+    // processes to arrive over 10 cycles. So we divide 20 by the job_load, and find a random
+    // number between 0 and that number, and add that to the arrival of the last process
+    let arrival_time = last_arrival + Math.floor(mulberry32(seed) * 20 / job_load)
+    console.log("Last arrival was " + last_arrival + " new arrival is " + arrival_time)
+    let MIN_COMPUTE_TIME = 1
+    let MAX_COMPUTE_TIME = AVG_COMPUTE_WAIT_CYCLE * (100 -wait_ratio) / 100
+    let MIN_WAIT_TIME = 1
+    let MAX_WAIT_TIME = AVG_COMPUTE_WAIT_CYCLE * wait_ratio / 100
     var lifecycle = []
     lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(mulberry32(seed) * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
     let num_waits = Math.floor(mulberry32(seed) * MAX_WAIT_CYCLES)
@@ -315,12 +324,12 @@ function createJob(job_number, seed) {
 }
 
 // Creates a list of Jobs
-function createJobList(seed) {
-    // Pick a number between MIN_JOBS and MAX_JOBS
-    let num_jobs = MIN_JOBS + Math.floor(mulberry32(seed) * (MAX_JOBS - MIN_JOBS))
+function createJobList(job_count, wait_ratio, job_load, seed) {
     var jobs = []
-    for (i = 0; i < num_jobs; i++) {
-        jobs.push(createJob(i, seed + i))
+    jobs.push(createJob(0, wait_ratio, job_load, seed, 0))
+    jobs[0].arrival_time = 0
+    for (i = 1; i < job_count; i++) {
+        jobs.push(createJob(i, wait_ratio, job_load, seed + i, jobs[i-1].arrival_time))
     }
 
     // We need to make sure that _some_ job starts at time=0 (or it makes for a boring start to the simulation)
@@ -330,20 +339,20 @@ function createJobList(seed) {
     // Now, we need to order the jobs so that their job numbers are in sequential order
     // Easiest way to do this is probably to just sort the list by arrival_time and
     // then re-assign the job numbers to match their index in the array
-    jobs.sort((a, b) => a.arrival_time - b.arrival_time)
-    for (i = 0; i < jobs.length; i++) {
-        console.log("Assigning job number " + i + " to job number " + jobs[i].job_number)
-        jobs[i].job_number = i
-    }
+    // jobs.sort((a, b) => a.arrival_time - b.arrival_time)
+    // for (i = 0; i < jobs.length; i++) {
+    //     console.log("Assigning job number " + i + " to job number " + jobs[i].job_number)
+    //     jobs[i].job_number = i
+    // }
 
 
     console.log("Last expected cycle is " + LAST_EXPECTED_CYCLE)
     return jobs
 }
 
-function simulator(system, schedulers, seed) {
+function simulator(system, schedulers, job_count, wait_ratio, job_load, seed) {
     console.log("1")
-    var starting_jobs = createJobList(seed)
+    var starting_jobs = createJobList(job_count, wait_ratio, job_load, seed)
     var overall_trace_object_list = []
 
     // Here's where we make a list of every scheduler we want to run this job list against
