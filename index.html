@@ -255,6 +255,7 @@ CPU Scheduler Simulator
 			updateUISchedulerQueues(scheduler_num)
 			updateUISchedulerCpus(scheduler_num)
 			updateUISchedulerTapes(scheduler_num)
+			updateUISchedulerStatistics(scheduler_num)
 		}
 		// This enables popovers for all updated process boxes
 		var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
@@ -280,6 +281,15 @@ CPU Scheduler Simulator
 		return systems[numaTypeSelector.selectedIndex]
 	}
 
+	// Creates the HTML that will go into the popover for a process
+	function getPopoverHTML(process) {
+		let next_need = describeProcessNextNeed(process)
+		var content = "Priority: " + process.priority
+		content += "<br/>needs: " + next_need
+		content += "<br/>waiting time: " + process.waiting_time
+		return content
+	}
+
 	// Create a div describing this process, colorized and with optional style class and text for no process
 	function getProcessDiv(process, nullText="", className="col border") {
 		// 
@@ -293,13 +303,12 @@ CPU Scheduler Simulator
 		button_element.style.backgroundColor = "#FFFFFF"
 
 		if (process != null) {
-			let next_need = describeProcessNextNeed(process)
 			button_element.innerHTML = "P" + process.job_number
 			button_element.style.color = colors[process.job_number % colors.length]
 			button_element.setAttribute("title", "Proc:" + process.job_number)
 			button_element.setAttribute("data-bs-toggle", "popover")
 			button_element.setAttribute("data-bs-trigger", "hover")
-			button_element.setAttribute("data-bs-content", "Priority: " + process.priority + "<br/>needs: " + next_need + "<br/>waiting time: " + process.waiting_time + "<br/>cycle count: " + process.cycle_count)
+			button_element.setAttribute("data-bs-content", getPopoverHTML(process))
 			button_element.setAttribute("data-bs-html", true)
 		} else {
 			button_element.innerHTML = nullText
@@ -437,6 +446,61 @@ CPU Scheduler Simulator
 			}
 			updateUISchedulerCpu(scheduler_num, cpu_num ,process)
 		}
+	}
+
+	function updateUISchedulerStatistics(scheduler_num) {
+		// We're not doing running stats, right now. Just ending ones.
+		let element_id = getSchedulerEndingStatsID(scheduler_num)
+		let element = getAndEmptyElement(element_id)
+		let avg_response = traces[scheduler_num].stats.avg_response_time.toFixed(1)
+		let avg_turnaround = traces[scheduler_num].stats.avg_turn_around_time.toFixed(1)
+		let avg_wait = traces[scheduler_num].stats.avg_wait_time.toFixed(1)
+		let max_response = traces[scheduler_num].stats.longest_response_time.toFixed(0)
+		let max_turnaround = traces[scheduler_num].stats.longest_turn_around_time.toFixed(0)
+		let max_wait = traces[scheduler_num].stats.longest_wait.toFixed(0)
+		let throughput = traces[scheduler_num].stats.throughput.toFixed(3)
+
+		// Stats row 1 (which is actually three lines of stats and a header)
+		var row = document.createElement("div")
+		row.className = "row"
+		var col = document.createElement("div")
+		col.className = "col-8"
+		col.style.textAlign = "right"
+		col.innerHTML = "<br/>Response Time:<br/>Turnaround Time:<br/>Wait Time"
+		row.appendChild(col)
+		col = document.createElement("div")
+		col.className = "col-2"
+		col.innerHTML = "Avg<br/>" + avg_response + "<br/>" + avg_turnaround + "</br>" + avg_wait
+		row.appendChild(col)
+		col = document.createElement("div")
+		col.className = "col-2"
+		col.innerHTML = "Max<br/>" + max_response + "<br/>" + max_turnaround + "</br>" + max_wait
+		row.appendChild(col)
+		element.appendChild(row)
+		
+		// Bottom row
+		var row = document.createElement("div")
+		row.className = "row"
+		var col = document.createElement("div")
+		col.className = "col-8"
+		col.style.textAlign = "right"
+		col.innerHTML = "Throughput:"
+		row.appendChild(col)
+		col = document.createElement("div")
+		col.className = "col-4"
+		col.innerHTML = throughput
+		row.appendChild(col)
+		element.appendChild(row)
+
+		// element.innerHTML = "Avg. Response Time: " + traces[scheduler_num].stats.avg_response_time.toFixed(1)
+		// element.innerHTML += "<br/>Avg. Turnaround Time: " + traces[scheduler_num].stats.avg_turn_around_time.toFixed(1)
+		// element.innerHTML += "<br/>Avg. Wait Time: " + traces[scheduler_num].stats.avg_wait_time.toFixed(1)
+		// element.innerHTML += "<br/>Longest Response Time: " + traces[scheduler_num].stats.longest_response_time.toFixed(0)
+		// element.innerHTML += "<br/>Longest Turnaround Time: " + traces[scheduler_num].stats.longest_turn_around_time.toFixed(0)
+		// element.innerHTML += "<br/>Longest Wait Time: " + traces[scheduler_num].stats.longest_wait.toFixed(0)
+		// element.innerHTML += "<br/>Throughput: " + traces[scheduler_num].stats.throughput.toFixed(3)
+
+
 	}
 
 	function buildUICpuBox(scheduler_num, cpu_num) {
@@ -757,6 +821,54 @@ CPU Scheduler Simulator
 		return row
 	}
 
+	// This was the builder for a two-column stats section which would show the ending stats
+	// as well as the stats for the current time-slice. We ended up just going with the
+	// ending stats (built below)
+	// function buildUISchedulerStatistics(scheduler_num) {
+	// 	let row = document.createElement("div")
+	// 	row.className = "row border"
+	// 	let row_col = document.createElement("div")
+	// 	row_col.className = "col"
+	// 	// Title divs
+	// 	let row_col_title = document.createElement("div")
+	// 	row_col_title.className = "row"
+	// 	let row_col_title_text = document.createElement("div")
+	// 	row_col_title_text.className = "col schedulersubtitle"
+	// 	row_col_title_text.innerText = "Statistics"
+	// 	row_col_title.appendChild(row_col_title_text)
+		
+	// 	// Row with stats columns
+	// 	let row_col_row = document.createElement("div")
+	// 	row_col_row.className = "row"
+	// 	let row_col_row_current = document.createElement("div")
+	// 	row_col_row_current.className = "col-6"
+	// 	row_col_row_current.id = getSchedulerCurrentStatsID(scheduler_num)
+	// 	row_col_row_current.innerText = "Current"
+	// 	var placeholder = document.createElement("div")
+	// 	placeholder.className = "border"
+	// 	placeholder.innerText = "Imagine some stats here"
+	// 	row_col_row_current.appendChild(placeholder)
+
+	// 	let row_col_row_ending = document.createElement("div")
+	// 	row_col_row_ending.className = "col-6"
+	// 	row_col_row_ending.id = getSchedulerEndingStatsID(scheduler_num)
+	// 	row_col_row_ending.innerText = "Ending"
+	// 	placeholder = document.createElement("div")
+	// 	placeholder.className = "border"
+	// 	placeholder.innerText = "Imagine some stats here"
+	// 	row_col_row_ending.appendChild(placeholder)
+
+	// 	row_col_row.appendChild(row_col_row_current)
+	// 	row_col_row.appendChild(row_col_row_ending)
+		
+	// 	row_col.appendChild(row_col_title)
+	// 	row_col.appendChild(row_col_row)
+
+	// 	row.appendChild(row_col)
+
+	// 	return row
+	// }
+
 	function buildUISchedulerStatistics(scheduler_num) {
 		let row = document.createElement("div")
 		row.className = "row border"
@@ -767,32 +879,26 @@ CPU Scheduler Simulator
 		row_col_title.className = "row"
 		let row_col_title_text = document.createElement("div")
 		row_col_title_text.className = "col schedulersubtitle"
-		row_col_title_text.innerText = "Statistics"
+		row_col_title_text.innerText = "Ending Statistics"
 		row_col_title.appendChild(row_col_title_text)
 		
 		// Row with stats columns
 		let row_col_row = document.createElement("div")
 		row_col_row.className = "row"
-		let row_col_row_current = document.createElement("div")
-		row_col_row_current.className = "col-6"
-		row_col_row_current.id = getSchedulerCurrentStatsID(scheduler_num)
-		row_col_row_current.innerText = "Current"
-		var placeholder = document.createElement("div")
-		placeholder.className = "border"
-		placeholder.innerText = "Imagine some stats here"
-		row_col_row_current.appendChild(placeholder)
+
+		let row_col_row_pad_left = document.createElement("div")
+		row_col_row_pad_left.className = "col-3"
 
 		let row_col_row_ending = document.createElement("div")
-		row_col_row_ending.className = "col-6"
+		row_col_row_ending.className = "col-5"
 		row_col_row_ending.id = getSchedulerEndingStatsID(scheduler_num)
-		row_col_row_ending.innerText = "Ending"
-		placeholder = document.createElement("div")
-		placeholder.className = "border"
-		placeholder.innerText = "Imagine some stats here"
-		row_col_row_ending.appendChild(placeholder)
 
-		row_col_row.appendChild(row_col_row_current)
+		let row_col_row_pad_right = document.createElement("div")
+		row_col_row_pad_right.className = "col-4"
+
+		row_col_row.appendChild(row_col_row_pad_left)
 		row_col_row.appendChild(row_col_row_ending)
+		row_col_row.appendChild(row_col_row_pad_right)
 		
 		row_col.appendChild(row_col_title)
 		row_col.appendChild(row_col_row)
