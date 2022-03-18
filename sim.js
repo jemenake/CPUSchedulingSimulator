@@ -283,14 +283,8 @@ function throwError(msg) {
 let AVG_COMPUTE_WAIT_CYCLE = 12
 let MAX_WAIT_CYCLES = 4 // Maximum _number_ of times any job needs to wait for something like
 let MIN_PRIORITY = 0
-<<<<<<< HEAD:simulator/sim.js
 let MAX_PRIORITY = 3
-let MAX_ARRIVAL_TIME = 40
-=======
-let MAX_PRIORITY = 1
-// let MAX_ARRIVAL_TIME = 40
-
->>>>>>> 2a99cfca7a25238c3ec70b25bb78d2ab1a84195c:sim.js
+//let MAX_ARRIVAL_TIME = 40
 // We need some way of stopping if we have an infinite loop, for some reason. So, figure out the
 // longest a process can need to run (_not_ counting time waiting in the run queue) and add that
 // to the latest possible arrival time. This should give us a rough idea of clock cycle count whereupon
