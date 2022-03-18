@@ -203,7 +203,7 @@ CPU Scheduler Simulator
 	addScheduler(new RRScheduler("Round Robin Scheduler", getSelectedSystem(), 3))
 	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed))
 	addScheduler(new MultiFIFOScheduler("MultiFIFOScheduler Scheduler", getSelectedSystem()))
-	//addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem()))
+	addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem(), 3)) // MUST define the number of priority levels or it will crash
 
 	function addScheduler(scheduler) {
 		schedulers.push(scheduler)

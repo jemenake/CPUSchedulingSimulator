@@ -334,7 +334,7 @@ class MultiFIFOScheduler extends FIFOScheduler {
 
 // Priority scheduler maintains a queue of queues for each priority level
 class PriorityScheduler extends FIFOScheduler {
-    constructor(name, system, num_priority_levels = 2) {
+    constructor(name, system, num_priority_levels) {
         super(name, system)
         this.num_priority_levels = num_priority_levels
         this.updateQueues()
@@ -400,7 +400,7 @@ class PriorityScheduler extends FIFOScheduler {
             // Push remaining live jobs
             for (const available_job of available_jobs_by_priority[i]) {
                 if (!this.job_exists(available_job, cur_jobs_by_priority[i])) {
-                    cur_jobs_by_priority.push(available_job)
+                    cur_jobs_by_priority[i].push(available_job)
                 }
             }
         }
