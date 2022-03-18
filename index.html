@@ -299,7 +299,7 @@ CPU Scheduler Simulator
 			button_element.setAttribute("title", "Proc:" + process.job_number)
 			button_element.setAttribute("data-bs-toggle", "popover")
 			button_element.setAttribute("data-bs-trigger", "hover")
-			button_element.setAttribute("data-bs-content", "needs: " + next_need + "<br/>longest wait: 1<br/>answer_time: 2<br/>turnaround time: 3")
+			button_element.setAttribute("data-bs-content", "Priority: " + process.priority + "<br/>needs: " + next_need + "<br/>longest wait: 1<br/>answer_time: 2<br/>turnaround time: 3")
 			button_element.setAttribute("data-bs-html", true)
 		} else {
 			button_element.innerHTML = nullText
