@@ -1,12 +1,12 @@
 class Scheduler {
     constructor(name, system) {
-        console.log("Superclass initializing for " + name)
+        // console.log("Superclass initializing for " + name)
         this.name = name
         this.setSystem(system)
     }
 
     setSystem(system) {
-        console.log("setSystem called with " + JSON.stringify(system))
+        // console.log("setSystem called with " + JSON.stringify(system))
         this.system = system
         this.updateQueues()
     }
@@ -49,15 +49,15 @@ class RandomScheduler extends Scheduler {
     constructor(name, system, seed) {
         super(name, system)
         this.rng = new RNG(seed)
-        console.log("RandomScheduler constructor")
+        // console.log("RandomScheduler constructor")
     }
 
     schedule(system_state) {
         var available_jobs = system_state.getRunningJobs()
-        this.logAvailableJobs(available_jobs)
+        // this.logAvailableJobs(available_jobs)
         this.queues[0] = [...available_jobs] // Queue order doesn't matter so just assign it to live jobs
         let assignments = this.assignCPUJobs(available_jobs, "random")
-        console.log("QUEUES: " + JSON.stringify(this.queues))
+        // console.log("QUEUES: " + JSON.stringify(this.queues))
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -85,7 +85,7 @@ class RandomScheduler extends Scheduler {
                 proc_idx = 0
             }
             
-            console.log("Assigning job " + available_jobs[proc_idx].job_number + " to CPU at index " + cpu_idx)
+            // console.log("Assigning job " + available_jobs[proc_idx].job_number + " to CPU at index " + cpu_idx)
             assignments[cpu_idx] = available_jobs[proc_idx]
             available_jobs.splice(proc_idx, 1)
             //delete available_jobs[proc_idx] // Remove this job from the list of available 
@@ -98,12 +98,12 @@ class RandomScheduler extends Scheduler {
 class FIFOScheduler extends RandomScheduler {
     constructor(name, system) {
         super(name, system)
-        console.log("FIFOScheduler constructor")
+        // console.log("FIFOScheduler constructor")
     }
 
     schedule(system_state) {
         var available_jobs = system_state.getRunningJobs()
-        super.logAvailableJobs(available_jobs)
+        // super.logAvailableJobs(available_jobs)
         var cur_jobs = this.getCurrentJobs(available_jobs)
         this.queues[0] = [...cur_jobs]
         var assignments = super.assignCPUJobs(cur_jobs, "fifo")
@@ -146,17 +146,17 @@ class RRScheduler extends FIFOScheduler {
     constructor(name, system, cycle_limit = 1) {
         super(name, system)
         this.cycle_limit = cycle_limit
-        console.log("RRScheduler constructor")
+        // console.log("RRScheduler constructor")
     }
 
     schedule(system_state) {
-        console.log("=====New Cycle=====")
+        // console.log("=====New Cycle=====")
         // Make sure waiting jobs have their cycle count reset
         for (var job of system_state.getWaitingJobs()) {
             job.cycle_count = 0
         }
         var available_jobs = system_state.getRunningJobs()
-        super.logAvailableJobs(available_jobs)
+        // super.logAvailableJobs(available_jobs)
         var cur_jobs = this.getCurrentJobs(available_jobs)
 
         // Only need to check cycles if this isn't the first cycle and there is more than one job
@@ -188,7 +188,7 @@ class RRScheduler extends FIFOScheduler {
             if (i < this.system.cpus) {
                 cur_jobs[i].cycle_count++
             }
-            console.log("Job " + cur_jobs[i].job_number + " cycle count: " + cur_jobs[i].cycle_count)
+            // console.log("Job " + cur_jobs[i].job_number + " cycle count: " + cur_jobs[i].cycle_count)
         }
 
         this.queues[0] = [...cur_jobs] // Saves potentially shifted jobs
@@ -205,7 +205,7 @@ class RRScheduler extends FIFOScheduler {
 class MultiFIFOScheduler extends FIFOScheduler {
     constructor(name, system) {
         super(name, system)
-        console.log("MultiFIFOScheduler constructor")
+        // console.log("MultiFIFOScheduler constructor")
     }
 
     updateQueues() {
@@ -219,7 +219,7 @@ class MultiFIFOScheduler extends FIFOScheduler {
 
     schedule(system_state) {
         var available_jobs = system_state.getRunningJobs()
-        super.logAvailableJobs(available_jobs)
+        // super.logAvailableJobs(available_jobs)
         var prev_jobs = this.getPrevJobsMulti(available_jobs)
 
         // If there are no previous jobs in queue then current jobs are available jobs, otherwise need to combine previous and currently available jobs first
@@ -236,7 +236,7 @@ class MultiFIFOScheduler extends FIFOScheduler {
         }
 
         var assignments = super.assignCPUJobs(this.flattenByCol(cur_jobs), "fifo")
-        console.log("QUEUES: " + JSON.stringify(this.queues))
+        // console.log("QUEUES: " + JSON.stringify(this.queues))
         return {
             "queues": this.queues,
             "queue_names": this.queue_names,
@@ -338,7 +338,7 @@ class PriorityScheduler extends FIFOScheduler {
         super(name, system)
         this.num_priority_levels = num_priority_levels
         this.updateQueues()
-        console.log("PriorityScheduler constructor")
+        // console.log("PriorityScheduler constructor")
     }
 
     updateQueues() {
@@ -352,7 +352,7 @@ class PriorityScheduler extends FIFOScheduler {
 
     schedule(system_state) {
         var available_jobs = system_state.getRunningJobs()
-        super.logAvailableJobs(available_jobs)
+        // super.logAvailableJobs(available_jobs)
         var available_jobs_by_priority = this.getAvailableJobsByPriority(available_jobs)
         var cur_jobs_by_priority = this.getCurrentJobsByPriority(available_jobs_by_priority)
 

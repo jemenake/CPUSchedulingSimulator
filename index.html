@@ -6,17 +6,20 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 	<title>CPU Scheduling Simulator</title>
 	<!-- Bootstrap CSS file -->
-	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
-	<title>Ground Reference Simulator</title>
+	<!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"> -->
+	<title>CPU Scheduler Simulator</title>
 </head>
 <body>
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script> -->
+<!-- <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script> -->
 
-<script src="simulator/sim.js"></script>
-<script src="schedulers/fifo.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="sim.js"></script>
+<script src="sched.js"></script>
 
 
 <header class="page-header header container-fluid" style="text-align:center">
@@ -72,120 +75,107 @@ CPU Scheduler Simulator
 		border: 2px solid gray;
 		border-radius: 10px;
 	}
+	/* Center text on process buttons */
+	.btn {
+		display: inline-flex;
+		justify-content: center;
+		align-items: center;
+		/* border-color: white; */
+		border: none
+	}
 </style>
-
 
 <div class="row" style="text-align:center">
 	<div class="col-md-12">
-
 		<input type="button" class="postsim" value="Reset" style="border-radius: 6px;" onclick="resetSimulation();">
 	</div>
 </div>
-
+<br/>
 <div class="row" style="text-align:center">
-	<div class="col-6">
-		<input type="range" class="presim" id="max_jobs_slider" min="1" max="100" onchange="document.getElementById('#max_jobs_label').innerHTML = this.value;">Processes:<span id="#max_jobs_label"></span><br/>
-		<input type="range" class="presim" id="max_jobs_slider" min="1" max="10" onchange="document.getElementById('#load_label').innerHTML = this.value;">Load:<span id="#load_label"></span>
-	</div>
-	<div class="col-6">
+	<div class="col-5"></div>
+	<div class="col-2">
 		System Type:
 		<select id="#system_type_selector" name="system_type" class="presim" onchange="systemChanged();"></select>
 	</div>
+	<div class="col-5"></div>
 </div>
+<div class="row text-center">
+	<div class="col-4"></div>
+	<div class="col-2 border">
+		Processes: <span id="#processes_label"></span><br/>
+		<input type="range" class="presim" id="#processes_slider" min="1" max="100" value="25" onchange="updateSliders();">
+	</div>
+	<div class="col-2 border">
+		Load: <span id="#load_label"></span><br/>
+		<input type="range" class="presim" id="#load_slider" min="1" max="5" value="4" onchange="updateSliders();">
+	</div>
+	<div class="col-4"></div>
+</div>
+<div class="row text-center">
+	<div class="col-4"></div>
+	<div class="col-2 border">
+		Wait ratio: <span id="#wait_ratio_label"></span>%<br/>
+		<input type="range" class="presim" id="#wait_ratio_slider" min="10" max="90" value="35" onchange="updateSliders();">	
+	</div>
+	<div class="col-2 border">
+		Random Seed<br/>
+		<input type="text" value="--" size=4 class="presim" id="#rand_seed" name="randseed" onchange="updateSliders();"/>
+	</div>
+	<div class="col-4"></div>
+</div>
+<br/>
 <div class="row" style="text-align:center">
 	<div class="col">
 		<input type="button" class="presim" value="Run" style="border-radius: 6px;" onclick="runSimulation();">
+	</div>
+</div>
+<br/>
+<div class="row" style="text-align:center">
+	<div class="col">
 		<div id="#time_slice">Time Slice: </div>
 	</div>
 </div>
-
 <div class="row" style="text-align:center">
 	<div class="col-md-12">
 		<input type="button" class="postsim" id="rev_all" value="|<<" style="border-radius: 6px;" onclick="revAll();">
-		<input type="button" class="postsim" id="rev_one" value="|<" style="border-radius: 6px;" onclick="adjustTimeSlice(-1);">
-		<input type="button" class="postsim" id="fwd_one" value=">|" style="border-radius: 6px;" onclick="adjustTimeSlice(1);">
+		<input type="button" class="postsim" id="rev_ten" value="10<" style="border-radius: 6px;" onclick="adjustTimeSlice(-10);">
+		<input type="button" class="postsim" id="rev_one" value="1<" style="border-radius: 6px;" onclick="adjustTimeSlice(-1);">
+		<input type="button" class="postsim" id="fwd_one" value=">1" style="border-radius: 6px;" onclick="adjustTimeSlice(1);">
+		<input type="button" class="postsim" id="fwd_ten" value=">10" style="border-radius: 6px;" onclick="adjustTimeSlice(10);">
 		<input type="button" class="postsim" id="fwd_all" value=">>|" style="border-radius: 6px;" onclick="fwdAll();">
 	</div>
 </div>
 
-
+<!-- The schedulers all get added here -->
 <div class="container" id="#schedulers">
-	<!-- <div class="row scheduler">
-		<div class="container">
-			<div class="schedulertitle">Random Scheduler</div>
-			<div class="row border">
-				<div class="col-10 border" id="#scheduler_9_queues">
-					<div class="schedulersubtitle">Queues</div>
-					<div class="row border">
-						<div class="col-1 border">Pri0</div>
-						<div class="col-11 border">
-							<div class="row" id="#scheduler_9_queue_0">
-								<div class="col"></div>
-								<div class="col-1" style="border: 2px solid gray; border-radius: 4px">P12</div>
-								<div class="col-1" style="border: 2px solid gray; border-radius: 4px;">P23</div>
-								<div class="col-1" style="border: 2px solid orange; border-radius: 4px;">P7</div>
-								<div class="col-1" style="border: 2px solid green; border-radius: 4px">P15</div>	
-								<div class="col-1" style="border: 2px solid blue; border-radius: 4px">P19</div>
-								<div class="col-1" style="border: 2px solid red; border-radius: 4px">P22</div>	
-							</div>
-						</div>
-					</div>
-
-					<div class="row border">
-						<div class="col-1 border">WAIT</div>
-						<div class="col-11 border">
-							<div class="row" id="#scheduler_9_queue_1" style="color: lightgray;">
-								<div class="col"></div>
-								<div class="col-1 border">P51</div>
-								<div class="col-1 border">P1</div>
-								<div class="col-1 border">P38</div>	
-								<div class="col-1 border">P18</div>	
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="col-md-2 border" id="#scheduler_9_cpus">
-					<div class="schedulersubtitle">CPUs</div>
-					<div class="row">
-						<div class="col border" id="#scheduler_9_cpu_0">
-							CPU0<br/>
-							<div style="border: 2px solid red; border-radius: 10px; text-align: center;">P22</div>
-						</div>
-					</div>
-
-				</div>
-			</div>
-			<div class="row" style="border: 2px solid gray; border-radius: 10px">
-				<div class="col">
-					<div class="row">
-						<div class="schedulersubtitle col">
-							Statistics
-						</div>
-					</div>
-					<div class="row">
-						<div id="#scheduler_0_currentstats" class="col-6">So Far</div>
-						<div id="#scheduler_0_endingstats" class="col-6">Entire Run</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div> -->
 </div>
 
 <script>
-
 	let systems = [ 
 		new System("1-CPU System", 1),
 		new System("2-CPU System", 2),
 		new System("4-CPU System", 4),
 	]
 
-	// let schedulers = [
-	// 	new RandomScheduler("Random Scheduler", systems[0]),
-	// 	new FIFOScheduler("FIFO Scheduler", systems[0]),
-	// 	new RRScheduler("Round Robin Scheduler", systems[0]),
-	//  new MultiFIFOScheduler("Multi FIFO Scheduler", systems[0])
-	// ]
+	// numa_type = 0 => No NUMA
+    // numa_type = 1 => NUMA-NoMove (meaning cpu affinity doesn't change)
+    // numa_type = 2 => NUMA-Move (meaning cpu affinity moves to a new CPU )
+	let numa_types = [
+		"No NUMA",
+		"NUMA No-Move",
+		"NUMA Move"
+	]
+
+	let colorings = [ 
+		"CPU",
+		"Priority",
+		"Latency",
+	]
+
+	let colors = [
+		"#AF0000", "#00AF00", "#0000AF",
+		"#AFAF00", "#AF00AF", "#00AFAF",
+	]
 
 	var time_slice = 0
 	let schedulers = []
@@ -194,16 +184,19 @@ CPU Scheduler Simulator
 	var max_runtime // The longest of the runtimes
 	var rng_seed = 55
 
-	resetSimulation();
-	populateSystemSelector();
-
-
+	resetSimulation()
+	populateSystemSelector()
+	updateSliders()
 
 	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
 	addScheduler(new RRScheduler("Round Robin Scheduler", getSelectedSystem(), 3))
 	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed))
 	addScheduler(new MultiFIFOScheduler("MultiFIFOScheduler Scheduler", getSelectedSystem()))
+<<<<<<< HEAD
 	addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem(), 3)) // MUST define the number of priority levels or it will crash
+=======
+	addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem()))
+>>>>>>> 2a99cfca7a25238c3ec70b25bb78d2ab1a84195c
 
 	function addScheduler(scheduler) {
 		schedulers.push(scheduler)
@@ -214,9 +207,11 @@ CPU Scheduler Simulator
 		// Notify schedulers that the system has changed (as some may need to change their queues)
 		for(scheduler_num=0; scheduler_num<schedulers.length; scheduler_num++) {
 			rebuildUICpuColumn(scheduler_num)
+			// We must notify all schedulers of the new system and _then_ ask them
+			// about their queues
 			schedulers[scheduler_num].setSystem(getSelectedSystem())
 			rebuildUIQueueColumn(scheduler_num)
-
+			rebuildUISchedulerCpuTapes(scheduler_num, getSelectedSystem())
 		}
 		// Now, rebuild the queues column for each scheduler's UI, in case their queues changed
 		// TODO
@@ -235,35 +230,98 @@ CPU Scheduler Simulator
 		updateUI()
 	}
 
+	// Rewind to the beginning
+	function revAll() {
+		adjustTimeSlice(-time_slice)
+	}
+
+	// Fast-forward to the end
+	function fwdAll() {
+		adjustTimeSlice(max_runtime - time_slice)
+	}
+
+	function updateSliders() {
+		document.getElementById('#processes_label').innerHTML = document.getElementById('#processes_slider').value
+		document.getElementById('#load_label').innerHTML = document.getElementById('#load_slider').value
+		document.getElementById('#wait_ratio_label').innerHTML = document.getElementById('#wait_ratio_slider').value
+		let val = parseInt(document.getElementById('#rand_seed').value)
+		if (isNaN(val)) {
+			document.getElementById('#rand_seed').value = rng_seed
+		} else {
+			rng_seed = val
+		}
+	}
+
 	function updateUI() {
-		// console.log("schedulers has " + schedulers.length + " items: " + JSON.stringify(schedulers))
 		updateUITimeSlice()
 		// Update each scheduler with the details of this time_slice
 		for(scheduler_num=0; scheduler_num<schedulers.length; scheduler_num++) {
 			updateUISchedulerQueues(scheduler_num)
 			updateUISchedulerCpus(scheduler_num)
+			updateUISchedulerTapes(scheduler_num)
 		}
+		// This enables popovers for all updated process boxes
+		var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+		var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+  			return new bootstrap.Popover(popoverTriggerEl)
+		})
 	}
 
 	function updateUITimeSlice() {
 		document.getElementById("#time_slice").innerHTML = "Time Slice : " + time_slice
 	}
 
-	function getProcessBox(text) {
-		var new_element = document.createElement("div")
-		new_element.className = "border"
-		new_element.style = "min-height: 30px;"
-		new_element.appendChild(document.createTextNode(text))
-		return new_element
+	function getSelectedSystem() {
+		let systemTypeSelector = document.getElementById("#system_type_selector")
+		// console.log("System Type Selector index = " + systemTypeSelector.selectedIndex)
+		return systems[systemTypeSelector.selectedIndex]
+	}
+
+	function getSelectedNumaType(scheduler_num) {
+		let element_id = getSchedulerNumaSelectorID(scheduler_num)
+		let numaTypeSelector = document.getElementById(element_id)
+		// console.log("System Type Selector index = " + systemTypeSelector.selectedIndex)
+		return systems[numaTypeSelector.selectedIndex]
+	}
+
+	// Create a div describing this process, colorized and with optional style class and text for no process
+	function getProcessDiv(process, nullText="", className="col border") {
+		// 
+		if (nullText == "") {
+			nullText = " "
+		}
+
+		button_element = document.createElement("button")
+		button_element.type = "button"
+		button_element.className = "btn btn-primary " + className
+		button_element.style.backgroundColor = "#FFFFFF"
+
+		if (process != null) {
+			let next_need = describeProcessNextNeed(process)
+			button_element.innerHTML = "P" + process.job_number
+			button_element.style.color = colors[process.job_number % colors.length]
+			button_element.setAttribute("title", "Proc:" + process.job_number)
+			button_element.setAttribute("data-bs-toggle", "popover")
+			button_element.setAttribute("data-bs-trigger", "hover")
+			button_element.setAttribute("data-bs-content", "needs: " + next_need + "<br/>longest wait: 1<br/>answer_time: 2<br/>turnaround time: 3")
+			button_element.setAttribute("data-bs-html", true)
+		} else {
+			button_element.innerHTML = nullText
+		}
+		return button_element
+	}
+
+
+	function getProcessBoxForTape(process) {
+		let process_element = document.createElement("div")
+		process_element.className = "col-1 border"
+		process_element.innerHTML = "P" + process.job_number
+		process_element.style.color = colors[process.job_number % colors.length]
+		return process_element
 	}
 
 	function populateSystemSelector() {
 		var selectBox = getAndEmptyElement("#system_type_selector")
-		// var selectBox = document.getElementById("#system_type_selector")
-		// // Clear existing box
-		// while(selectBox.firstChild) {
-		// 	selectBox.removeChild(selectBox.firstChild)
-		// }
 		for(i=0; i<systems.length; i++) {
 			var new_option = document.createElement("option")
 			new_option.value = i
@@ -273,41 +331,52 @@ CPU Scheduler Simulator
 		selectBox.selectedIndex = 0
 	}
 
-	// function populateSchedulerSelector(scheduler_num) {
-	// 	let id = `#scheduler_${scheduler_num}_selector`
-	// 	console.log("ID = " + id)
-	// 	var selectBox = document.getElementById(id)
-	// 	// Clear existing box
-	// 	while(selectBox.firstChild) {
-	// 		selectBox.removeChild(selectBox.firstChild)
-	// 	}
-	// 	for(i=0; i<schedulers.length; i++) {
-	// 		var new_option = document.createElement("option")
-	// 		new_option.value = i
-	// 		new_option.text = schedulers[i].name
-	// 		selectBox.appendChild(new_option)
-	// 	}
-	// 	selectBox.selectedIndex = 0
-	// }
+	function populateSchedulerNumaSelector(scheduler_num) {
+		let element_id = getSchedulerNumaSelectorID(scheduler_num)
+		let selectBox = getAndEmptyElement(element_id)
+		for(i=0; i<numa_types.length; i++) {
+			var new_option = document.createElement("option")
+			new_option.value = i
+			new_option.text = numa_types[i].name
+			selectBox.appendChild(new_option)
+		}
+		selectBox.selectedIndex = 0
+	}
 
 	////////////////////////////////////////////////////////////////
-	// Name generators
+	// ID generators
 	////////////////////////////////////////////////////////////////
 	function getSchedulerID(scheduler_num) { return `#scheduler_${scheduler_num}` }
+	function getSchedulerNumaSelectorID(scheduler_num) { return `#scheduler_${scheduler_num}_numa_selector` }
 	function getSchedulerCpusID(scheduler_num) { return `#scheduler_${scheduler_num}_cpus` }
 	function getSchedulerCpuID(scheduler_num, cpu_num) { return `#scheduler_${scheduler_num}_cpu_${cpu_num}` }
 	function getSchedulerQueuesID(scheduler_num) { return `#scheduler_${scheduler_num}_queues` }
 	function getSchedulerQueueID(scheduler_num, queue_num) { return `#scheduler_${scheduler_num}_queue_${queue_num}` }
 	function getSchedulerCurrentStatsID(scheduler_num, queue_num) { return `#scheduler_${scheduler_num}_currentstats` }
 	function getSchedulerEndingStatsID(scheduler_num, queue_num) { return `#scheduler_${scheduler_num}_endingstats` }
+	function getSchedulerTapesID(scheduler_num, cpu_num) { return `#scheduler_${scheduler_num}_tapes` }
+	function getSchedulerTapePastID(scheduler_num, cpu_num) { return `#scheduler_${scheduler_num}_tape_${cpu_num}_past` }
+	function getSchedulerTapePresentID(scheduler_num, cpu_num) { return `#scheduler_${scheduler_num}_tape_${cpu_num}_present` }
+	function getSchedulerTapeFutureID(scheduler_num, cpu_num) { return `#scheduler_${scheduler_num}_tape_${cpu_num}_future` }
+
+	////////////////////////////////////////////////////////////////
+	// Description generators (for making human-readable text from job/scheduler data)
+	////////////////////////////////////////////////////////////////
+	function describeProcessNextNeed(process) { 
+		let need_char = process.lifecycle[0][0]
+		let need_amount = process.lifecycle[0].slice(1)
+		if (need_char == 'c') {
+			return "compute for: " + need_amount
+		} else {
+			return "wait for: " + need_amount
+		}
+	}
 
 	////////////////////////////////////////////////////////////////
 	// UI Update
 	////////////////////////////////////////////////////////////////
 	function getAndEmptyElement(element_id) {
-		console.log("Getting and emptying element for : " + element_id);
 		var element = document.getElementById(element_id)
-		console.log("Got : " + JSON.stringify(element));
 		while(element.firstChild) {
 			element.removeChild(element.firstChild)
 		}
@@ -320,63 +389,79 @@ CPU Scheduler Simulator
 		var column_pad = document.createElement("div")
 		column_pad.className = "col"
 		element.appendChild(column_pad)
-		// We have to reverse the list because the "front" of the queue is on the right
-		console.log("processes = " + JSON.stringify(processes))
-		for(process_num=processes.length-1; process_num >= 0; process_num--) {
-			let process = processes[process_num]
-			console.log("  process = " + JSON.stringify(process))
-			let process_element = document.createElement("div")
-			process_element.className = "col-1 border"
-			process_element.innerHTML = "P" + process.job_number
-			element.appendChild(process_element)
+		// It's possible that, at later time-slices, this scheduler has already finished, in which case processes will be null
+		// and we should just leave the queue blank
+		if(processes != null && processes.length > 0) {
+			// We have to reverse the list because the "front" of the queue is on the right
+			for(process_num=processes.length-1; process_num >= 0; process_num--) {
+				let process = processes[process_num]
+				// console.log("  process = " + JSON.stringify(process))
+				element.appendChild(getProcessDiv(process, "", "col-1 border"))
+			}
+		} else {
+			// To keep the height of the queue from adjusting, we need to add a single, invisible button
+			element.appendChild(getProcessDiv(null, ".", "col"))
 		}
 	}
 
 	function updateUISchedulerQueues(scheduler_num) {
 		// Update all of the run queues
-		console.log("Updating from scheduler " + scheduler_num)
-		console.log("  " + JSON.stringify(schedulers[scheduler_num]))
+		// console.log("Updating from scheduler " + scheduler_num)
+		// console.log("  " + JSON.stringify(schedulers[scheduler_num]))
 		for(queue_num=0; queue_num<schedulers[scheduler_num].queue_names.length; queue_num++) {
-			console.log("trace queue for scheduler " + scheduler_num + " queues" + " are " + JSON.stringify(traces[scheduler_num].trace_object_list[time_slice].queues))
-			updateUISchedulerQueue(
-				getSchedulerQueueID(scheduler_num, queue_num),
-				traces[scheduler_num].trace_object_list[time_slice].queues[queue_num]
-			)
+			// If this scheduler finished before this time-slice, then pass a null so that the queue is displayed as empty
+			let processes = null
+			if(time_slice < traces[scheduler_num].trace_object_list.length) {
+				processes = traces[scheduler_num].trace_object_list[time_slice].queues[queue_num]
+			}
+			updateUISchedulerQueue(getSchedulerQueueID(scheduler_num, queue_num), processes)
 		}
 		// Update the waiting list (which is numbered the next integer after the last run queue)
-		updateUISchedulerQueue(
-				getSchedulerQueueID(scheduler_num, schedulers[scheduler_num].queue_names.length),
-				traces[scheduler_num].trace_object_list[time_slice].waiting_jobs
-		)
+		let processes = null
+		if(time_slice < traces[scheduler_num].trace_object_list.length) {
+			processes = traces[scheduler_num].trace_object_list[time_slice].waiting_jobs
+		}
+		updateUISchedulerQueue(getSchedulerQueueID(scheduler_num, schedulers[scheduler_num].queue_names.length), processes)
 	}
 
-	function updateUISchedulerCpu(element_id, process) {
-		console.log("updateUISchedulerCpu(" + element_id)
+	
+	function updateUISchedulerCpu(scheduler_num, cpu_num, process) {
+		let element_id = getSchedulerCpuID(scheduler_num, cpu_num)
+		// console.log("updateUISchedulerCpu(" + element_id)
 		let element = getAndEmptyElement(element_id)
-		element.appendChild(document.createTextNode("CPU0"))
-		console.log("  process = " + JSON.stringify(process))
-		let process_element = document.createElement("div")
-		process_element.className = "border"
-		if (process == null) {
-			process_element.innerHTML = "IDLE"
-		} else {
-			process_element.innerHTML = "P" + process.job_number
-		}
+		let process_element = getProcessDiv(process, "IDLE")
 		element.appendChild(process_element)
 	}
 
 	function updateUISchedulerCpus(scheduler_num) {
 		for (cpu_num=0; cpu_num<getSelectedSystem().cpus; cpu_num++) {
-			updateUISchedulerCpu(
-				getSchedulerCpuID(scheduler_num, cpu_num),
-				traces[scheduler_num].trace_object_list[time_slice].assignments[cpu_num]
-			)
+			let process = null
+			if (time_slice < traces[scheduler_num].trace_object_list.length) {
+				process = traces[scheduler_num].trace_object_list[time_slice].assignments[cpu_num]
+			}
+			updateUISchedulerCpu(scheduler_num, cpu_num ,process)
 		}
+	}
+
+	function buildUICpuBox(scheduler_num, cpu_num) {
+		console.log("Adding CPU"+cpu_num)
+		let row_element = document.createElement("div")
+		row_element.className = "row border"
+
+		let new_element = document.createElement("div")
+		new_element.className = "col border"
+		new_element.id = getSchedulerCpuID(scheduler_num, cpu_num)
+		// new_element.id = `#scheduler_${scheduler_num}_cpu_${cpu_num}`
+		new_element.appendChild(document.createTextNode("CPU" + cpu_num))
+		new_element.appendChild(getProcessDiv(null, "NOT RUNNING"))
+
+		row_element.appendChild(new_element)
+
+		return row_element
 	}
 
 	function rebuildUICpuColumn(scheduler_num) {
 		let id = getSchedulerCpusID(scheduler_num)
-		console.log("ID = " + id)
 		let cpuBox = getAndEmptyElement(id)
 		let title_bar = document.createElement("div")
 		title_bar.className = "schedulersubtitle"
@@ -384,62 +469,195 @@ CPU Scheduler Simulator
 		cpuBox.appendChild(title_bar)
 		let selected_system = getSelectedSystem()
 		console.log(JSON.stringify(selected_system))
-		for(i=0; i<selected_system.cpus; i++) {
-			console.log("Adding CPU"+i)
-			var row_element = document.createElement("div")
-			row_element.className = "row border"
+		for(cpu_num=0; cpu_num<selected_system.cpus; cpu_num++) {
+			// console.log("Adding CPU"+i)
+			// var row_element = document.createElement("div")
+			// row_element.className = "row border"
 
-			var new_element = document.createElement("div")
-			new_element.className = "col border"
-			new_element.id = `#scheduler_${scheduler_num}_cpu_${i}`
-			new_element.appendChild(document.createTextNode("CPU" + i))
-			new_element.appendChild(getProcessBox("NOT RUNNING"))
+			// var new_element = document.createElement("div")
+			// new_element.className = "col border"
+			// new_element.id = `#scheduler_${scheduler_num}_cpu_${i}`
+			// new_element.appendChild(document.createTextNode("CPU" + i))
+			// new_element.appendChild(getProcessDiv(null, "NOT RUNNING"))
 
-			row_element.appendChild(new_element)
+			// row_element.appendChild(new_element)
 
-			cpuBox.appendChild(row_element)
+			// cpuBox.appendChild(buildUICpuBox(scheduler_num, cpu_num))
+
+			let title_row = document.createElement("div")
+			title_row.className = "row border"
+			let title_col = document.createElement("div")
+			title_col.classname = "col"
+			title_col.appendChild(document.createTextNode("CPU" + cpu_num))
+			title_row.appendChild(title_col)
+			cpuBox.appendChild(title_row)
+
+			let process_row = document.createElement("div")
+			process_row.className = "row border"
+			process_row.id = getSchedulerCpuID(scheduler_num, cpu_num)
+			process_row.appendChild(getProcessDiv(null, "IDLE"))
+
+			// let new_element = document.createElement("div")
+			// new_element.className = "col border"
+			// // new_element.id = `#scheduler_${scheduler_num}_cpu_${cpu_num}`
+			// new_element.appendChild(document.createTextNode("CPU" + cpu_num))
+			// new_element.appendChild(getProcessDiv(null, "NOT RUNNING"))
+
+			cpuBox.appendChild(process_row)
+
+			// return row_element
+		
+
 		}
 	}
 
+	// Populate a single tape with the processes for this time-slice
+	function updateUISchedulerTape(scheduler_num, cpu_num) {
+		let TAPE_CAPACITY = 12 // This is a charateristic of Bootstrap, the HTML layout system we're using
+		// Find the last time-slice for _this_ scheduler
+		let max_time_slice = traces[scheduler_num].trace_object_list.length - 1
+
+		// Do past tape
+		var element_id = getSchedulerTapePastID(scheduler_num, cpu_num)
+		var element = getAndEmptyElement(element_id)
+		var row = document.createElement("div")
+		row.className = "row"
+		if (time_slice < TAPE_CAPACITY) {
+			// There aren't enough processes to fill all 12 slots, so we need to pad
+			let col = document.createElement("div")
+			col.className = "col"
+			row.appendChild(col)
+		}
+		for(i=Math.max(0,time_slice-TAPE_CAPACITY); i<time_slice; i++) {
+			// In the case that this scheduler finished before others, we need to let this one
+			// keep scrolling, so we need to pass null processes to getProcessDiv
+			var process = null
+			if(i <= max_time_slice) {
+				process = traces[scheduler_num].trace_object_list[i].assignments[cpu_num]
+			}
+			let col = getProcessDiv(process, "", "col-1 border")
+			row.appendChild(col)
+		}
+		element.appendChild(row)
+
+		// Present tape
+		element_id = getSchedulerTapePresentID(scheduler_num, cpu_num)
+		element = getAndEmptyElement(element_id)
+		row = document.createElement("div")
+		row.className = "row"
+		if(time_slice <= max_time_slice) {
+			col = getProcessDiv(traces[scheduler_num].trace_object_list[time_slice].assignments[cpu_num])
+		} else {
+			col = getProcessDiv(null)
+		}
+		row.appendChild(col)
+		element.appendChild(row)
+		
+		// Future tape
+		element_id = getSchedulerTapeFutureID(scheduler_num, cpu_num)
+		element = getAndEmptyElement(element_id)
+		var row = document.createElement("div")
+		row.className = "row"
+		for(i=time_slice+1; i<=Math.min(max_time_slice,time_slice+TAPE_CAPACITY); i++) {
+			let col = getProcessDiv(traces[scheduler_num].trace_object_list[i].assignments[cpu_num], "", "col-1 border")
+			row.appendChild(col)
+		}
+		if (time_slice + TAPE_CAPACITY < max_time_slice) {
+			// There aren't enough processes to fill all 12 slots, so we need to pad
+			let col = document.createElement("div")
+			col.className = "col"
+			row.appendChild(col)
+		}
+		element.appendChild(row)
+
+	}
+
+	// Populate all tapes for a given scheduler
+	function updateUISchedulerTapes(scheduler_num) {
+		// Update all of the tapes
+		for(cpu_num=0; cpu_num<getSelectedSystem().cpus; cpu_num++) {
+			updateUISchedulerTape(scheduler_num, cpu_num)
+		}
+	}
+
+	////////////////////////////////////////////////////////////////
+	// UI Rebuild 
+	////////////////////////////////////////////////////////////////	
 	function rebuildUIQueueColumn(scheduler_num) {
 		let id = getSchedulerQueuesID(scheduler_num)
-		console.log("ID = " + id)
 		let queuesBox = getAndEmptyElement(id)
 		let title_bar = document.createElement("div")
 		title_bar.className = "schedulersubtitle"
 		title_bar.innerText = "Queues"
 		queuesBox.appendChild(title_bar)
 
-		console.log("scheduler_num = " + scheduler_num)
-		console.log("schedulers.length = " + schedulers.length)
+		// console.log("scheduler_num = " + scheduler_num)
+		// console.log("schedulers.length = " + schedulers.length)
 		let scheduler = schedulers[scheduler_num]
 		for(queue_num=0; queue_num<scheduler.queues.length; queue_num++) {
 			queuesBox.appendChild(buildSchedulerQueue(scheduler_num, queue_num, scheduler.queue_names[queue_num]))
 		}
 		queuesBox.appendChild(buildSchedulerQueue(scheduler_num, scheduler.queues.length, "WAIT"))
-
-		// for(i=0; i<selected_system.cpus; i++) {
-		// 	console.log("Adding CPU"+i)
-		// 	var row_element = document.createElement("div")
-		// 	row_element.className = "row border"
-
-		// 	var new_element = document.createElement("div")
-		// 	new_element.className = "col border"
-		// 	new_element.id = `#scheduler_${scheduler_num}_cpu_${i}`
-		// 	new_element.appendChild(document.createTextNode("CPU" + i))
-		// 	new_element.appendChild(getProcessBox("NOT RUNNING"))
-
-		// 	row_element.appendChild(new_element)
-
-		// 	cpuBox.appendChild(row_element)
-		// }
-
 	}
 
-	function getSelectedSystem() {
-		let systemTypeSelector = document.getElementById("#system_type_selector")
-		// console.log("System Type Selector index = " + systemTypeSelector.selectedIndex)
-		return systems[systemTypeSelector.selectedIndex]
+	function buildShuttleControls() {
+		let row = document.createElement("div")
+		row.className = "row"
+		row.style.textAlign = "center"
+		let col = document.createElement("div")
+		col.className = "col-12"
+		var button_element
+		
+		button_element = document.createElement("input")
+		button_element.type = "button"
+		button_element.className = "postsim"
+		button_element.value = "|<<"
+		button_element.style.borderRadius = "6px"
+		button_element.onclick = revAll
+		col.appendChild(button_element)
+
+		button_element = document.createElement("input")
+		button_element.type = "button"
+		button_element.className = "postsim"
+		button_element.value = "10<"
+		button_element.style.borderRadius = "6px"
+		button_element.onclick = (function() { adjustTimeSlice(-10); })
+		col.appendChild(button_element)
+
+		button_element = document.createElement("input")
+		button_element.type = "button"
+		button_element.className = "postsim"
+		button_element.value = "1<"
+		button_element.style.borderRadius = "6px"
+		button_element.onclick = (function() { adjustTimeSlice(-1); })
+		col.appendChild(button_element)
+
+		button_element = document.createElement("input")
+		button_element.type = "button"
+		button_element.className = "postsim"
+		button_element.value = ">1"
+		button_element.style.borderRadius = "6px"
+		button_element.onclick = (function() { adjustTimeSlice(1); })
+		col.appendChild(button_element)
+
+		button_element = document.createElement("input")
+		button_element.type = "button"
+		button_element.className = "postsim"
+		button_element.value = ">10"
+		button_element.style.borderRadius = "6px"
+		button_element.onclick = (function() { adjustTimeSlice(10); })
+		col.appendChild(button_element)
+
+		button_element = document.createElement("input")
+		button_element.type = "button"
+		button_element.className = "postsim"
+		button_element.value = ">>|"
+		button_element.style.borderRadius = "6px"
+		button_element.onclick = fwdAll
+		col.appendChild(button_element)
+
+		row.appendChild(col)
+		return row
 	}
 
 	function buildSchedulerQueue(scheduler_num, queue_num, queue_name) {
@@ -487,6 +705,62 @@ CPU Scheduler Simulator
 		return queues_and_cpus
 	}
 
+	function buildUISchedulerCpuTape(scheduler_num, cpu_num) {
+		let row = document.createElement("div")
+		row.className = "row border"
+		// CPU name
+		var col = document.createElement("div")
+		col.className = "col-1 border"
+		col.textContent = "CPU" + cpu_num
+		row.appendChild(col)
+		// Left of play-head
+		col = document.createElement("div")
+		col.className = "col-5 border"
+		col.id = getSchedulerTapePastID(scheduler_num, cpu_num)
+		row.appendChild(col)
+		// Play-head
+		col = document.createElement("div")
+		col.className = "col-1 border"
+		col.id = getSchedulerTapePresentID(scheduler_num, cpu_num)
+		row.appendChild(col)
+		// Right of play-head
+		col = document.createElement("div")
+		col.className = "col-5 border"
+		col.id = getSchedulerTapeFutureID(scheduler_num, cpu_num)
+		row.appendChild(col)
+		return row
+	}
+
+	function rebuildUISchedulerCpuTapes(scheduler_num, system) {
+		let id = getSchedulerTapesID(scheduler_num)
+		let row = getAndEmptyElement(id)
+
+		let row_col = document.createElement("div")
+		row_col.className = "col"
+		// Title divs
+		let row_col_title = document.createElement("div")
+		row_col_title.className = "row"
+		let row_col_title_text = document.createElement("div")
+		row_col_title_text.className = "col schedulersubtitle"
+		row_col_title_text.innerText = "Tapes"
+		row_col_title.appendChild(row_col_title_text)
+		row_col.appendChild(row_col_title)
+
+		for(cpu_num=0; cpu_num<system.cpus; cpu_num++) {
+			row_col.appendChild(buildUISchedulerCpuTape(scheduler_num, cpu_num))
+		}
+		row.appendChild(row_col)
+		return row
+	}
+
+	// This just builds the shell for the tapes. It gets populated by rebuildUISchedulerCpuTapes()
+	function buildUISchedulerCpuTapes(scheduler_num) { 
+		let row = document.createElement("div")
+		row.className = "row border"
+		row.id = getSchedulerTapesID(scheduler_num)
+		return row
+	}
+
 	function buildUISchedulerStatistics(scheduler_num) {
 		let row = document.createElement("div")
 		row.className = "row border"
@@ -530,24 +804,9 @@ CPU Scheduler Simulator
 		row.appendChild(row_col)
 
 		return row
-
-		// <div class="row" style="border: 2px solid gray; border-radius: 10px">
-		// 	 <div class="col">
-		// 		<div class="row">
-		// 			<div class="schedulersubtitle col">
-		// 				Statistics
-		// 			</div>
-		// 		</div>
-		// 		<div class="row">
-		// 			<div id="#scheduler_0_currentstats" class="col-6">So Far</div>
-		// 			<div id="#scheduler_0_endingstats" class="col-6">Entire Run</div>
-		// 		</div>
-		// 	</div>
-		// </div>
 	}
 
 	function appendSchedulerUI(scheduler, scheduler_num) {
-		console.log("appendSchedulerUI(" + scheduler_num + ")")
 		let scheduler_div = document.getElementById("#schedulers")
 		let scheduler_row = document.createElement("div")
 		scheduler_row.className = "row scheduler"
@@ -559,16 +818,22 @@ CPU Scheduler Simulator
 		// let queue_and_cpus = document.createElement("div")
 		// queue_and_cpus.className = "row border"
 		let queues_and_cpus = buildUISchedulerQueuesAndCpus(scheduler, scheduler_num, getSelectedSystem())
+		let cpu_tapes = buildUISchedulerCpuTapes(scheduler_num, getSelectedSystem())
 		let statistics = buildUISchedulerStatistics(scheduler_num)
 		statistics.className = "row"
 		scheduler_container.appendChild(scheduler_title)
 		scheduler_container.appendChild(queues_and_cpus)
+		scheduler_container.appendChild(cpu_tapes)
 		scheduler_container.appendChild(statistics)
 		scheduler_row.appendChild(scheduler_container)
 		scheduler_div.appendChild(scheduler_row)
+		scheduler_div.appendChild(document.createTextNode("|"))
+		scheduler_div.appendChild(buildShuttleControls())
+		resetSimulation() // This is so that the new shuttle controls get disabled
 
 		rebuildUICpuColumn(scheduler_num)
 		rebuildUIQueueColumn(scheduler_num)
+		rebuildUISchedulerCpuTapes(scheduler_num, getSelectedSystem())
 	}
 
 
@@ -592,7 +857,11 @@ CPU Scheduler Simulator
 		elements.forEach((element) => element.disabled = false)
 		// TOOD: Actually call the simulator with parameters from the UI
 		console.log("Running simulation")
-		traces = simulator(getSelectedSystem(), schedulers, 55)
+
+		let job_count = document.getElementById('#processes_slider').value
+		let job_load = document.getElementById('#load_slider').value
+		let wait_ratio = document.getElementById('#wait_ratio_slider').value
+		traces = simulator(getSelectedSystem(), schedulers, job_count, wait_ratio, job_load, rng_seed)
 		max_runtime = 0
 		for(i=0; i<traces.length; i++) {
 			runtimes[i] = traces[i].trace_object_list.length
