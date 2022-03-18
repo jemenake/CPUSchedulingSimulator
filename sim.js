@@ -307,7 +307,7 @@ function createJob(job_number, wait_ratio, job_load, seed, last_arrival) {
     // processes to arrive over 10 cycles. So we divide 20 by the job_load, and find a random
     // number between 0 and that number, and add that to the arrival of the last process
     let arrival_time = last_arrival + Math.floor(mulberry32(seed) * 20 / job_load)
-    console.log("Last arrival was " + last_arrival + " new arrival is " + arrival_time)
+    // console.log("Last arrival was " + last_arrival + " new arrival is " + arrival_time)
     let MIN_COMPUTE_TIME = 1
     let MAX_COMPUTE_TIME = AVG_COMPUTE_WAIT_CYCLE * (100 -wait_ratio) / 100
     let MIN_WAIT_TIME = 1
@@ -319,7 +319,7 @@ function createJob(job_number, wait_ratio, job_load, seed, last_arrival) {
         lifecycle.push("w" + (MIN_WAIT_TIME + Math.floor(mulberry32(seed) * (MAX_WAIT_TIME - MIN_WAIT_TIME))))
         lifecycle.push("c" + (MIN_COMPUTE_TIME + Math.floor(mulberry32(seed) * (MAX_COMPUTE_TIME - MIN_COMPUTE_TIME))))
     }
-    console.log("Creating a job #" + job_number + " with arrival time " + arrival_time + " and priority " + priority)
+    // console.log("Creating a job #" + job_number + " with arrival time " + arrival_time + " and priority " + priority)
     return new Job(job_number, arrival_time, priority, lifecycle)
 }
 
@@ -351,7 +351,6 @@ function createJobList(job_count, wait_ratio, job_load, seed) {
 }
 
 function simulator(system, schedulers, job_count, wait_ratio, job_load, seed) {
-    console.log("1")
     var starting_jobs = createJobList(job_count, wait_ratio, job_load, seed)
     var overall_trace_object_list = []
 
