@@ -195,27 +195,66 @@ CPU Scheduler Simulator
 	populateSystemSelector()
 	updateSliders()
 
+
+	available_schedulers = [
+		"FIFO Scheduler",
+		"Round Robin",
+		"Random",
+		"Multi-Queue FIFO",
+		"Priority"
+	]
+
+	function getSchedulerInstanceByName(name) {
+		if (name == "FIFO Scheduler")
+			return new FIFOScheduler("FIFO Scheduler", getSelectedSystem())
+		if (name == "Round Robin")
+			return new RRScheduler("Round Robin Scheduler", getSelectedSystem(), 3)
+		if (name == "Random")
+			return new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed)
+		if (name == "Multi-Queue FIFO")
+			return new MultiFIFOScheduler("MultiFIFOScheduler Scheduler", getSelectedSystem())
+		if (name == "Priority")
+			return new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem(), 3) // MUST define the number of priority levels or it will crash
+		alert("We were asked to instantiate a scheduler that we don't recognize: " + name)
+	}
+
 	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
 	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
-	addScheduler(new RRScheduler("Round Robin Scheduler", getSelectedSystem(), 3))
+	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
 	// addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed))
-	addScheduler(new MultiFIFOScheduler("MultiFIFOScheduler Scheduler", getSelectedSystem()))
-	addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem(), 3)) // MUST define the number of priority levels or it will crash
+	// addScheduler(new MultiFIFOScheduler("MultiFIFOScheduler Scheduler", getSelectedSystem()))
+	// addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem(), 3)) // MUST define the number of priority levels or it will crash
 
 	function addScheduler(scheduler) {
 		schedulers.push(scheduler)
 		appendSchedulerUI(scheduler, schedulers.length-1)
 	}
 
+	function rebuildSchedulerUI(scheduler_num) {
+		rebuildUICpuColumn(scheduler_num)
+		// We must notify all schedulers of the new system and _then_ ask them
+		// about their queues
+		schedulers[scheduler_num].setSystem(getSelectedSystem())
+		rebuildUIQueueColumn(scheduler_num)
+		rebuildUISchedulerCpuTapes(scheduler_num, getSelectedSystem())
+	}
+
+	function updateScheduler(scheduler_num)  {
+		console.log("Update Scheduler : " + scheduler_num)
+		let element_id = getSchedulerTypeSelectorID(scheduler_num)
+		let selector = document.getElementById(element_id)
+		let new_sched_name = available_schedulers[selector.value]
+		let instance = getSchedulerInstanceByName(new_sched_name)
+		console.log("Value is " + available_schedulers[selector.value])
+		console.log("Instance name is " + instance.name)
+		schedulers[scheduler_num] = instance
+		rebuildSchedulerUI(scheduler_num)
+	}
+
 	function systemChanged() {
 		// Notify schedulers that the system has changed (as some may need to change their queues)
 		for(scheduler_num=0; scheduler_num<schedulers.length; scheduler_num++) {
-			rebuildUICpuColumn(scheduler_num)
-			// We must notify all schedulers of the new system and _then_ ask them
-			// about their queues
-			schedulers[scheduler_num].setSystem(getSelectedSystem())
-			rebuildUIQueueColumn(scheduler_num)
-			rebuildUISchedulerCpuTapes(scheduler_num, getSelectedSystem())
+			rebuildSchedulerUI(scheduler_num)
 		}
 		// Now, rebuild the queues column for each scheduler's UI, in case their queues changed
 		// TODO
@@ -344,13 +383,25 @@ CPU Scheduler Simulator
 		selectBox.selectedIndex = 0
 	}
 
+	function populateSchedulerTypeSelector(scheduler_num) {
+		let element_id = getSchedulerTypeSelectorID(scheduler_num)
+		let selectBox = getAndEmptyElement(element_id)
+		for(i=0; i<available_schedulers.length; i++) {
+			var new_option = document.createElement("option")
+			new_option.value = i
+			new_option.text = available_schedulers[i]
+			selectBox.appendChild(new_option)
+		}
+		selectBox.selectedIndex = 0
+	}
+	
 	function populateSchedulerNumaSelector(scheduler_num) {
 		let element_id = getSchedulerNumaSelectorID(scheduler_num)
 		let selectBox = getAndEmptyElement(element_id)
 		for(i=0; i<numa_types.length; i++) {
 			var new_option = document.createElement("option")
 			new_option.value = i
-			new_option.text = numa_types[i].name
+			new_option.text = numa_types[i]
 			selectBox.appendChild(new_option)
 		}
 		selectBox.selectedIndex = 0
@@ -360,6 +411,7 @@ CPU Scheduler Simulator
 	// ID generators
 	////////////////////////////////////////////////////////////////
 	function getSchedulerID(scheduler_num) { return `#scheduler_${scheduler_num}` }
+	function getSchedulerTypeSelectorID(scheduler_num) { return `#scheduler_${scheduler_num}_type_selector` }
 	function getSchedulerNumaSelectorID(scheduler_num) { return `#scheduler_${scheduler_num}_numa_selector` }
 	function getSchedulerCpusID(scheduler_num) { return `#scheduler_${scheduler_num}_cpus` }
 	function getSchedulerCpuID(scheduler_num, cpu_num) { return `#scheduler_${scheduler_num}_cpu_${cpu_num}` }
@@ -922,9 +974,52 @@ CPU Scheduler Simulator
 		scheduler_row.className = "row scheduler"
 		let scheduler_container = document.createElement("div")
 		scheduler_container.className = "container"
+
 		let scheduler_title = document.createElement("div")
-		scheduler_title.className = "schedulertitle"
-		scheduler_title.textContent = scheduler.name
+		scheduler_title.className = "schedulertitle row"
+		
+		let pad_left = document.createElement("div")
+		pad_left.className = "col-2"
+		scheduler_title.appendChild(pad_left)
+
+		let sched_selector_col = document.createElement("div")
+		sched_selector_col.className = "col-4"
+
+		let sched_selector_box = document.createElement("select")
+		for(i=0; i<available_schedulers.length; i++) {
+			var new_option = document.createElement("option")
+			new_option.value = i
+			new_option.text = available_schedulers[i]
+			sched_selector_box.appendChild(new_option)
+		}
+		sched_selector_box.selectedIndex = 0
+		sched_selector_box.id =  getSchedulerTypeSelectorID(scheduler_num)
+		sched_selector_box.onchange = (function() { updateScheduler(scheduler_num) })
+		sched_selector_col.appendChild(sched_selector_box)
+		scheduler_title.appendChild(sched_selector_col)
+	
+		let numa_selector_col = document.createElement("div")
+		numa_selector_col.className = "col-4"
+
+		let numa_selector_box = document.createElement("select")
+		for(i=0; i<numa_types.length; i++) {
+			var new_option = document.createElement("option")
+			new_option.value = i
+			new_option.text = numa_types[i]
+			numa_selector_box.appendChild(new_option)
+		}
+		numa_selector_box.selectedIndex = 0
+		numa_selector_box.id =  getSchedulerNumaSelectorID(scheduler_num)
+		numa_selector_col.appendChild(numa_selector_box)
+		scheduler_title.appendChild(numa_selector_col)
+	
+		let pad_right = document.createElement("div")
+		pad_right.className = "col-2"
+		scheduler_title.appendChild(pad_right)
+
+
+
+
 		// let queue_and_cpus = document.createElement("div")
 		// queue_and_cpus.className = "row border"
 		let queues_and_cpus = buildUISchedulerQueuesAndCpus(scheduler, scheduler_num, getSelectedSystem())
@@ -971,7 +1066,14 @@ CPU Scheduler Simulator
 		let job_count = document.getElementById('#processes_slider').value
 		let job_load = document.getElementById('#load_slider').value
 		let wait_ratio = document.getElementById('#wait_ratio_slider').value
-		let numa_types = [ 1, 2, 1, 2, 1]
+
+		// Fetch the numa types from each of the scheduler boxes
+		let numa_types = []
+		for(scheduler_num=0; scheduler_num<schedulers.length; scheduler_num++) {
+			let element_id = getSchedulerNumaSelectorID(scheduler_num)
+			let selector = document.getElementById(element_id)
+			numa_types.push(parseInt(selector.value))
+		}
 		traces = simulator(getSelectedSystem(), schedulers, numa_types, job_count, wait_ratio, job_load, rng_seed)
 		max_runtime = 0
 		for(i=0; i<traces.length; i++) {
@@ -988,8 +1090,6 @@ CPU Scheduler Simulator
 		updateUI()
 
 	}
-
-
 
 </script>
 </body>

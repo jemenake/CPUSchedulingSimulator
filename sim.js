@@ -452,25 +452,25 @@ function computeScheduleWith(system, system_state, scheduler, numa_type) {
                 if (job_number in data_cpu) {
                     // This process has been in a cpu before
                     if(data_cpu[job_number] == i) {
-                        console.log("We've seen this job, but it's still on the same cpu: " + i)
+                        // console.log("We've seen this job, but it's still on the same cpu: " + i)
                     } else {
-                        console.log("This job has switched from " + data_cpu[job_number] + " to " + i)
+                        // console.log("This job has switched from " + data_cpu[job_number] + " to " + i)
                         // NUMA-NoMove
                         if (numa_type == 1) {
-                            console.log("  NUMA-NoMove")
+                            // console.log("  NUMA-NoMove")
                             // Penalize the process a little
                             computation_adj += NUMA_NOMOVE_PENALTY
                         }
                         // NUMA-Move
                         if (numa_type == 2) {
-                            console.log("  NUMA-Move")
+                            // console.log("  NUMA-Move")
                             // Penalize the process a lot, but move the data_cpu
                             computation_adj += NUMA_MOVE_PENALTY
                             data_cpu[job_number] = i
                         }
                     }
                 } else {
-                    console.log("This is the first time we've seen job " + job_number)
+                    // console.log("This is the first time we've seen job " + job_number)
                     data_cpu[job_number] = i
                 }
 
@@ -483,7 +483,7 @@ function computeScheduleWith(system, system_state, scheduler, numa_type) {
                 // console.log("After : " + JSON.stringify(job.lifecycle))
             }
         }
-        console.log(JSON.stringify(data_cpu))
+        // console.log(JSON.stringify(data_cpu))
         // Add to wait time, by finding jobs that are running and not in a cpu
         system_state.getRunningJobs().forEach((running_job) => {
 
