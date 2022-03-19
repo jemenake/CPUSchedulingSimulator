@@ -168,7 +168,7 @@ class Job {
         }
 
         // Get everything after the first char as an integer
-        let number = parseInt(this.lifecycle[0].substring(1))
+        let number = parseFloat(this.lifecycle[0].substring(1))
         // If it's a 1, then we have finished waiting, so delete this array element. Otherwise, decrement
         if (number + amount <= 0) {
             this.lifecycle = this.lifecycle.slice(1)
