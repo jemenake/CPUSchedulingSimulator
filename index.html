@@ -175,6 +175,13 @@ CPU Scheduler Simulator
 	let colors = [
 		"#AF0000", "#00AF00", "#0000AF",
 		"#AFAF00", "#AF00AF", "#00AFAF",
+		"#6F0000", "#006F00", "#00006F",
+		"#6FAF00", "#6F006F", "#006F6F",
+		"#8F0000", "#008F00", "#00008F",
+		"#8FAF00", "#8F008F", "#008F8F",
+		"#4F0000", "#004F00", "#00004F",
+		"#4F4F00", "#4F004F", "#004F4F",
+
 	]
 
 	var time_slice = 0
@@ -189,8 +196,9 @@ CPU Scheduler Simulator
 	updateSliders()
 
 	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
+	addScheduler(new FIFOScheduler("FIFO Scheduler", getSelectedSystem()))
 	addScheduler(new RRScheduler("Round Robin Scheduler", getSelectedSystem(), 3))
-	addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed))
+	// addScheduler(new RandomScheduler("Random Scheduler", getSelectedSystem(), rng_seed))
 	addScheduler(new MultiFIFOScheduler("MultiFIFOScheduler Scheduler", getSelectedSystem()))
 	addScheduler(new PriorityScheduler("PriorityScheduler Scheduler", getSelectedSystem(), 3)) // MUST define the number of priority levels or it will crash
 
@@ -963,7 +971,8 @@ CPU Scheduler Simulator
 		let job_count = document.getElementById('#processes_slider').value
 		let job_load = document.getElementById('#load_slider').value
 		let wait_ratio = document.getElementById('#wait_ratio_slider').value
-		traces = simulator(getSelectedSystem(), schedulers, job_count, wait_ratio, job_load, rng_seed)
+		let numa_types = [ 1, 2, 1, 2, 1]
+		traces = simulator(getSelectedSystem(), schedulers, numa_types, job_count, wait_ratio, job_load, rng_seed)
 		max_runtime = 0
 		for(i=0; i<traces.length; i++) {
 			runtimes[i] = traces[i].trace_object_list.length

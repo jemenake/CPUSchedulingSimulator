@@ -154,7 +154,7 @@ class Job {
         }
     }
 
-    recordComputation(cycle) {
+    adjustComputation(cycle, amount) {
         // Make sure that we're really waiting
         if (this.isWaiting()) {
             // This is actually something we shouldn't throw an exeption for. This would just indicate
@@ -170,10 +170,10 @@ class Job {
         // Get everything after the first char as an integer
         let number = parseInt(this.lifecycle[0].substring(1))
         // If it's a 1, then we have finished waiting, so delete this array element. Otherwise, decrement
-        if (number <= 1) {
+        if (number + amount <= 0) {
             this.lifecycle = this.lifecycle.slice(1)
         } else {
-            this.lifecycle[0] = "c" + (number - 1)
+            this.lifecycle[0] = "c" + (number + amount).toFixed(2)
         }
 
         if (this.isFinished() && this.finished_cycle_time == null) {
@@ -284,6 +284,8 @@ let AVG_COMPUTE_WAIT_CYCLE = 12
 let MAX_WAIT_CYCLES = 4 // Maximum _number_ of times any job needs to wait for something like
 let MIN_PRIORITY = 0
 let MAX_PRIORITY = 3
+let NUMA_NOMOVE_PENALTY = 0.3
+let NUMA_MOVE_PENALTY = 0.8
 //let MAX_ARRIVAL_TIME = 40
 // We need some way of stopping if we have an infinite loop, for some reason. So, figure out the
 // longest a process can need to run (_not_ counting time waiting in the run queue) and add that
@@ -349,7 +351,7 @@ function createJobList(job_count, wait_ratio, job_load, seed) {
     return jobs
 }
 
-function simulator(system, schedulers, job_count, wait_ratio, job_load, seed) {
+function simulator(system, schedulers, numa_types, job_count, wait_ratio, job_load, seed) {
     var starting_jobs = createJobList(job_count, wait_ratio, job_load, seed)
     var overall_trace_object_list = []
 
@@ -357,14 +359,15 @@ function simulator(system, schedulers, job_count, wait_ratio, job_load, seed) {
     // let schedulers = [new RandomScheduler("Random Schedule", system)]
 
     // At this point, we have a list of jobs, and we can cycle through all of the schedulers
-    schedulers.forEach((scheduler) => {
+    for (scheduler_num=0; scheduler_num<schedulers.length; scheduler_num++) {
+        let scheduler = schedulers[scheduler_num]
         console.log("Simulating scheduler named : " + scheduler.name)
 
         var working_copy = starting_jobs.reduce((list, job) => list.concat(job.clone()), [])
         let system_state = new SystemState(working_copy, seed)
 
-        overall_trace_object_list.push(computeScheduleWith(system, system_state, scheduler))
-    })
+        overall_trace_object_list.push(computeScheduleWith(system, system_state, scheduler, numa_types[scheduler_num]))
+    }
 
     // Here's where we make a list of every scheduler we want to run this job list against
     //let schedulers = [new RandomScheduler("Random Schedule", system)]
@@ -374,11 +377,12 @@ function simulator(system, schedulers, job_count, wait_ratio, job_load, seed) {
     return overall_trace_object_list
 }
 
-function computeScheduleWith(system, system_state, scheduler) {
+function computeScheduleWith(system, system_state, scheduler, numa_type) {
     system_state.cycle = 0
     console.log("computeSchedule() called with the " + system.name + " and " + scheduler.name + " and " + system_state.jobs.length + " jobs")
     let trace = new OverallTraceObject([], system, scheduler.name)
     let cpus_filled_sum = 0;
+    let data_cpu = {} // A hashtable of job => integer which tells us where a process' data is, for NUMA concerns.
 
     // Run until nothing is alive
     //while (starting_jobs.some((job) => job.isAlive())) {
@@ -387,11 +391,11 @@ function computeScheduleWith(system, system_state, scheduler) {
             throwError("ERROR: The system clock reached " + system_state.getSystemTime() + " which is longer than we expected to need for computation. It's likely that the simulator has an infinite loop, somewhere.")
         }
 
+        // Call the scheduler to get the schedule for this time-slice
         let schedule = scheduler.schedule(system_state)
-        schedule.assignments.forEach((job) => {
+        // schedule.assignments.forEach((job) => {
             // console.log("Assignment = " + JSON.stringify(job))
-        })
-
+        // })
 
 
         // Trace update
@@ -426,6 +430,8 @@ function computeScheduleWith(system, system_state, scheduler) {
             }
         })
 
+
+
         // Now, give the selected processes some computation
         // schedule.assignments.forEach((job) => {
         for (let i = 0; i < schedule.assignments.length; i++) {
@@ -434,13 +440,50 @@ function computeScheduleWith(system, system_state, scheduler) {
                 // console.log("CPU" + i + " Got a null assignment. This isn't a bad thing. Just noting it in the logs during development")
             } else {
                 cpus_filled_sum += 1
+
+                // Default is to grant a job one full time-slice of computation
+                var computation_adj = -1.00
+
+                // Here's where we simulate NUMA. Check the assignments. Any process which has never
+                // been assigned, before (i.e. isn't in data_cpu hash) will be added. Any other will
+                // be checked to see if it's running on a different CPU from its data. If so, it will
+                // either be penalized a little (NUMA-NoMove) or a lot (NUMA-Move).
+                let job_number = job.job_number
+                if (job_number in data_cpu) {
+                    // This process has been in a cpu before
+                    if(data_cpu[job_number] == i) {
+                        console.log("We've seen this job, but it's still on the same cpu: " + i)
+                    } else {
+                        console.log("This job has switched from " + data_cpu[job_number] + " to " + i)
+                        // NUMA-NoMove
+                        if (numa_type == 1) {
+                            console.log("  NUMA-NoMove")
+                            // Penalize the process a little
+                            computation_adj += NUMA_NOMOVE_PENALTY
+                        }
+                        // NUMA-Move
+                        if (numa_type == 2) {
+                            console.log("  NUMA-Move")
+                            // Penalize the process a lot, but move the data_cpu
+                            computation_adj += NUMA_MOVE_PENALTY
+                            data_cpu[job_number] = i
+                        }
+                    }
+                } else {
+                    console.log("This is the first time we've seen job " + job_number)
+                    data_cpu[job_number] = i
+                }
+
+
+
+
                 // console.log("Looks like job #" + job.job_number + " got some CPU time")
                 // console.log("Before: " + JSON.stringify(job.lifecycle))
-                job.recordComputation(system_state.cycle)  // Reduce computation    
+                job.adjustComputation(system_state.cycle, computation_adj)  // Reduce computation    
                 // console.log("After : " + JSON.stringify(job.lifecycle))
             }
         }
-
+        console.log(JSON.stringify(data_cpu))
         // Add to wait time, by finding jobs that are running and not in a cpu
         system_state.getRunningJobs().forEach((running_job) => {
 
