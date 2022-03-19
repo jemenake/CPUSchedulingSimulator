@@ -1,4 +1,4 @@
-# CSC550_Project
+# CPU Scheduling Simulator
 
 TODO:
   - Something to generate a process lifecycle (given some rand seed, and, later, maybe
